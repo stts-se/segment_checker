@@ -77,7 +77,7 @@ Create a demo as soon as possible
 1. Design protocol for source data
 2. Send protocol for source data to Jens
 3. Create layout based on provided draft above
-4. Create simplified GUI (to run without server) [leave spectrogram for later if necessary]
+4. Create simplified GUI (to run without server)
 5. Create protocol for annotation data
 6. File/folder hierarchy
 7. Create server with Rest API
