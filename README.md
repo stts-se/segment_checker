@@ -19,6 +19,28 @@ Source data: Audio URL with segment type and time chunks (in milliseconds). Exam
        }
       ]
      }
+     
+   _or_
+     
+    {
+      "url": "http://localhost/audio/fgfgfgfgf.wav",
+      "segment_type": "silence",
+      "chunk": {
+        "start": 301,
+        "end": 351
+       },
+    }
+    
+    {
+      "url": "http://localhost/audio/fgfgfgfgf.wav",
+      "segment_type": "silence",
+      "chunk": {
+        "start": 1908,
+        "end": 1958
+       },
+    }
+
+
 
 Segment types: silence, "e" (the vowel), etc.
 
@@ -55,7 +77,7 @@ Create a demo as soon as possible
 1. Design protocol for source data
 2. Send protocol for source data to Jens
 3. Create layout based on provided draft above
-4. Create simplified GUI (to run without server) [leave spectrogram for later if necessary]
+4. Create simplified GUI (to run without server)
 5. Create protocol for annotation data
 6. File/folder hierarchy
 7. Create server with Rest API
