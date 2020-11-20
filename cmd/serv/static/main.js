@@ -76,15 +76,15 @@ window.addEventListener("load", function () {
         debug: false,
     };
 
-    // let payload = {
-    // 	url: baseURL + '/audio/a_pause.wav',
-    // 	chunk: { start: 500, end: 1480 },
-    // };
-
     let payload = {
-	url: baseURL + '/audio/three_sentences.wav',
-	chunk: { start: 500, end: 1890 },
+    	url: baseURL + '/audio/a_pause.wav',
+    	chunk: { start: 500, end: 1480 },
     };
+
+    // let payload = {
+    // 	url: baseURL + '/audio/three_sentences.wav',
+    // 	chunk: { start: 500, end: 1890 },
+    // };
     
     waveform = new Waveform(options);
 
