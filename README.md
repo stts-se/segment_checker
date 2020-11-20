@@ -52,7 +52,7 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 ## Tasks
 Create a demo as soon as possible
 
-1. Design protocol for source data [done]
+1. Design protocol for source data
 2. Send protocol for source data to Jens
 3. Create layout based on provided draft above
 4. Create simplified GUI (to run without server) [leave spectrogram for later if necessary]
