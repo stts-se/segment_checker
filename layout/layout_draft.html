@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Segment checker</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="layout_draft.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="selected-font">
+  <div class="wrapper">
+
+    <!-- header row -->
+    <div class="grid-logo">Logo</div>
+    <div class="grid-app_name">Segment checker</div>
+
+    <div class="grid-main smallcaps">
+
+	<div style="align: center" class="grid-component rounded-border smallcaps resizable">
+	     <img style="width: 100%" height="200px" src="waveform.png">
+	</div>
+
+	<div class="grid-component smallcaps" style="text-align: center">
+	    <div style="margin: 10px">
+		<span class="btn noborder" style="background-color:red">bad sample</span>
+		<span class="btn noborder" style="background-color:orange">skip</span>
+		<span class="btn noborder" style="background-color:green">save</span>
+	    </div>
+	    <div style="margin: 10px">
+		<span class="btn noborder" style="background-color:red">bs+next</span>
+		<span class="btn noborder" style="background-color:orange">skip+next</span>
+		<span class="btn noborder" style="background-color:green">save+next</span>
+	    </div>
+	    <div style="margin: 10px">
+		play <span class="btn noborder">all</span>
+		<span class="btn noborder">label</span>
+		<span class="btn noborder">left</span>
+		<span class="btn noborder">right</span>
+	    </div>
+
+	    <div style="margin: 10px">
+		<span class='btn noborder' id='skiptofirst'>&#x23EE;</span>
+		<span class='btn noborder' id='skipback'>&#x23EA;</span>
+		<span class='btn noborder' id='skipforward'>&#x23E9;</span>
+		<span class='btn noborder' id='skiptolast'>&#x23ED;</span>
+		<span class="btn noborder" style="background-color:lightgrey">reset</span>
+		<span class="btn noborder" style="background-color:yellow">quit</span>
+	    </div>
+	    
+	</div>
+
+	<div class="smallcaps" style="padding: 10px">comment<br/>
+	    <textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment" rows="4"></textarea>
+	</div>
+
+
+  </div>
+
+</body>
+
+</html>
