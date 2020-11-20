@@ -59,6 +59,20 @@
     border-color: grey !important;
 }
 
+.btnlabel {
+    text-decoration: none;
+    background-color: transparent;
+    background-image: none;
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: .215rem .5rem;
+    font-size: 1rem;
+}
+
+
 
 img.disabled {
     -webkit-filter: grayscale(100%); 
@@ -109,4 +123,8 @@ img.disabled {
 .resizable {    
     overflow: auto;
     resize: both;
+}
+
+.noborder {
+    border: none;
 }

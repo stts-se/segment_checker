@@ -20,9 +20,9 @@ class Waveform {
 
 	var wsPlugins = [
 	    WaveSurfer.regions.create({
-		dragSelection: {
-		    slop: 5
-		}
+		// dragSelection: {
+		//     slop: 5
+		// }
 	    }),
 	];
 
@@ -41,7 +41,7 @@ class Waveform {
 	    this.options.autoplayFunc = function() { return false; }
 	
 	this.defaultRegionBackground = 'hsla(200, 50%, 70%, 0.4)';
-	this.selectedRegionBackground = 'hsla(120, 100%, 75%, 0.3)';
+	this.selectedRegionBackground = this.defaultRegionBackground; //'hsla(120, 100%, 75%, 0.3)';
 	var wsOptions = {
 	    container: '#' + this.options.waveformElementID,
 	    waveColor: 'purple',
@@ -180,7 +180,7 @@ class Waveform {
 	});
 
 	let waveformResizeObserver = new ResizeObserver(function (source) {
-	    waveform = source[0].target;
+	    let waveform = source[0].target;
 	    let wave = waveform.getElementsByTagName("wave")[0];
 	    if (waveform.style.height)
 		wave.style.height = waveform.style.height;
@@ -190,6 +190,34 @@ class Waveform {
 	console.log("waveform ready");
     }
 
+    play(start, end) {
+	this.wavesurfer.play(start, end);
+    }
+    
+    playRegionIndex(index) {
+	let regions = this.listRegions();
+	for (let i=0; i<regions.length; i++) {
+	    if (i === index)
+		regions[i].play();
+	}
+    }
+    
+    playLeftOfRegionIndex(index) {
+	let regions = this.listRegions();
+	for (let i=0; i<regions.length; i++) {
+	    if (i === index)
+		this.wavesurfer.play(0, regions[i].start);
+	}
+    }
+    
+    playRightOfRegionIndex(index) {
+	let regions = this.listRegions();
+	for (let i=0; i<regions.length; i++) {
+	    if (i === index)
+		this.wavesurfer.play(regions[i].end);
+	}
+    }
+    
     loadBlob(blob, timeChunks) {
 	console.log("waveform loadBlob", timeChunks);
 	this.wavesurfer.loadBlob(blob);
@@ -305,7 +333,6 @@ class Waveform {
 	}
     }
 
-
     // LIB
 
     debug(msg) {
@@ -316,7 +343,7 @@ class Waveform {
 	this.debug("LOG EVENT | type: " + evt.type + ", element id:" + evt.target.id, evt);
     }
 
-    static floatWithDecimals(f, decimalCount) {
+    floatWithDecimals(f, decimalCount) {
 	let res = f + "";
 	if (!res.includes("."))
 	    return res + ".00";

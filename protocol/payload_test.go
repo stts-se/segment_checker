@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestSourcePayload(t *testing.T) {
+func TestSourceChunksPayload(t *testing.T) {
 	payload := SourcePayload{
 		URL:         "http://localhost/audio/fgfgfgfgf.wav",
 		SegmentType: "silence",
