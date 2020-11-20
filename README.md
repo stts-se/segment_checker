@@ -19,6 +19,28 @@ Source data: Audio URL with segment type and time chunks (in milliseconds). Exam
        }
       ]
      }
+     
+   _or_
+     
+    {
+      "url": "http://localhost/audio/fgfgfgfgf.wav",
+      "segment_type": "silence",
+      "chunk": {
+        "start": 301,
+        "end": 351
+       },
+    }
+    
+    {
+      "url": "http://localhost/audio/fgfgfgfgf.wav",
+      "segment_type": "silence",
+      "chunk": {
+        "start": 1908,
+        "end": 1958
+       },
+    }
+
+
 
 Segment types: silence, "e" (the vowel), etc.
 
