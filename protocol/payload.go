@@ -1,5 +1,10 @@
 package protocol
 
+// type Message struct {
+// 	Level string `json:"level,omitempty"`
+// 	Text  string `json:"text,omitempty"`
+// }
+
 type SourcePayload struct {
 	URL         string  `json:"url"`
 	SegmentType string  `json:"segment_type"`
@@ -24,6 +29,7 @@ type Chunk struct {
 }
 
 type ChunkBytes struct {
-	Audio string `json:"audio"`
-	Chunk Chunk  `json:"chunk"`
+	Audio    string `json:"audio"`
+	FileType string `json:"file_type"`
+	Chunk    Chunk  `json:"chunk"`
 }

@@ -17,6 +17,13 @@ import (
 	"github.com/stts-se/segment_checker/protocol"
 )
 
+type ClientMessage struct {
+	//ClientID    string `json:"client_id"`
+	MessageType string `json:"message_type"`
+	Payload     string `json:"payload"`
+	Error       string `json:"error"`
+}
+
 var chunkExtractor modules.ChunkExtractor
 
 // print serverMsg to server log, and return an http error with clientMsg and the specified error code (http.StatusInternalServerError, etc)
@@ -25,8 +32,25 @@ func httpError(w http.ResponseWriter, serverMsg string, clientMsg string, errCod
 	http.Error(w, clientMsg, errCode)
 }
 
+// send error message as json to client
+func jsonError(w http.ResponseWriter, serverMsg string, clientMsg string, errCode int) {
+	log.Printf("error : %s", serverMsg)
+	payload := ClientMessage{
+		Error: clientMsg,
+	}
+	resJSON, err := json.Marshal(payload)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal result : %v", err)
+		httpError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s\n", string(resJSON))
+	return
+}
+
+// for debugging
 func echoJSON(w http.ResponseWriter, r *http.Request) {
-	log.Println("echoJSON", r.Method)
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -41,7 +65,6 @@ func echoJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func extractChunk(w http.ResponseWriter, r *http.Request) {
-	log.Println("extractChunk", r.Method)
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	if r.Method == "OPTIONS" {
@@ -66,15 +89,16 @@ func extractChunk(w http.ResponseWriter, r *http.Request) {
 	res, err := chunkExtractor.ProcessURLWithContext(source, "")
 	if err != nil {
 		msg := fmt.Sprintf("chunk extractor failed : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
-		return
+		jsonError(w, msg, msg, http.StatusInternalServerError)
 	}
 	resJSON, err := json.Marshal(res)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal result : %v", err)
 		httpError(w, msg, msg, http.StatusBadRequest)
 		return
+
 	}
+	log.Printf("extractChunk output json: %s", string(resJSON))
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "%s\n", string(resJSON))
 }
@@ -128,7 +152,7 @@ func main() {
 	r.StrictSlash(true)
 
 	r.HandleFunc("/extract_chunk/", extractChunk).Methods("POST", "OPTIONS")
-	r.HandleFunc("/echo_json/", echoJSON).Methods("GET", "POST", "OPTIONS")
+	r.HandleFunc("/echo_json/", echoJSON).Methods("POST", "OPTIONS")
 	r.HandleFunc("/doc/", generateDoc).Methods("GET")
 
 	docs := make(map[string]string)

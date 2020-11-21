@@ -55,18 +55,6 @@ func downloadFile(url, fileName string) error {
 	return nil
 }
 
-// ProcessURL an audioURL, extracting the specified chunks to slices of byte
-func (ch ChunkExtractor) ProcessURL(audioURL string, chunks []protocol.Chunk, encoding string) ([][]byte, error) {
-	id, err := uuid.NewUUID()
-	if err != nil {
-		return [][]byte{}, fmt.Errorf("couldn't create uuid : %v", err)
-	}
-	fileName := filepath.Base(audioURL)
-	audioFile := path.Join(os.TempDir(), fmt.Sprintf("%s-%s", id, fileName))
-
-	return ch.ProcessFile(audioFile, chunks, encoding)
-}
-
 // ProcessFileWithContext an audioFile, extracting the specified chunks to slices of byte
 func (ch ChunkExtractor) ProcessFileWithContext(audioFile string, chunk protocol.Chunk, leftContext, rightContext int64, encoding string) (protocol.ChunkBytes, error) {
 	start := chunk.Start - leftContext
@@ -75,6 +63,14 @@ func (ch ChunkExtractor) ProcessFileWithContext(audioFile string, chunk protocol
 	}
 	end := chunk.End + rightContext
 	processChunk := protocol.Chunk{Start: start, End: end}
+
+	ext := filepath.Ext(audioFile)
+	ext = strings.TrimPrefix(ext, ".")
+	if encoding != "" {
+		ext = encoding
+	} else {
+		encoding = ext
+	}
 
 	//fmt.Println(chunk.Start-leftContext, chunk.Start, start, leftContext, end)
 
@@ -88,7 +84,8 @@ func (ch ChunkExtractor) ProcessFileWithContext(audioFile string, chunk protocol
 	}
 
 	res := protocol.ChunkBytes{
-		Audio: base64.StdEncoding.EncodeToString(bts[0]),
+		Audio:    base64.StdEncoding.EncodeToString(bts[0]),
+		FileType: encoding,
 		Chunk: protocol.Chunk{
 			Start: chunk.Start - start,
 			End:   chunk.End - start,
@@ -106,7 +103,29 @@ func (ch ChunkExtractor) ProcessURLWithContext(payload protocol.SplitRequestPayl
 	fileName := filepath.Base(payload.URL)
 	audioFile := path.Join(os.TempDir(), fmt.Sprintf("%s-%s", id, fileName))
 
+	err = downloadFile(payload.URL, audioFile)
+	if err != nil {
+		return protocol.ChunkBytes{}, fmt.Errorf("couldn't download URL : %v", err)
+	}
+
 	return ch.ProcessFileWithContext(audioFile, payload.Chunk, payload.LeftContext, payload.RightContext, encoding)
+}
+
+// ProcessURL an audioURL, extracting the specified chunks to slices of byte
+func (ch ChunkExtractor) ProcessURL(audioURL string, chunks []protocol.Chunk, encoding string) ([][]byte, error) {
+	id, err := uuid.NewUUID()
+	if err != nil {
+		return [][]byte{}, fmt.Errorf("couldn't create uuid : %v", err)
+	}
+	fileName := filepath.Base(audioURL)
+	audioFile := path.Join(os.TempDir(), fmt.Sprintf("%s-%s", id, fileName))
+
+	err = downloadFile(audioURL, audioFile)
+	if err != nil {
+		return [][]byte{}, fmt.Errorf("couldn't download URL : %v", err)
+	}
+
+	return ch.ProcessFile(audioFile, chunks, encoding)
 }
 
 // ProcessFile an audioFile, extracting the specified chunks to slices of byte
