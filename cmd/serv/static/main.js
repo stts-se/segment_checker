@@ -32,7 +32,7 @@ async function getAudioBlob(payload) {
             let byteArray = new Uint8Array(byteNumbers);
 
             let blob = new Blob([byteArray], { 'type': json.file_type });
-            waveform.loadAudioBlob(blob, payload.chunk);
+            loadAudioBlob(blob, payload.chunk);
         })
         .catch(function (error) {
             console.log('Request failed', error);

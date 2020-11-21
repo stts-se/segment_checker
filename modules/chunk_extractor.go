@@ -72,8 +72,6 @@ func (ch ChunkExtractor) ProcessFileWithContext(audioFile string, chunk protocol
 		encoding = ext
 	}
 
-	//fmt.Println(chunk.Start-leftContext, chunk.Start, start, leftContext, end)
-
 	bts, err := ch.ProcessFile(audioFile, []protocol.Chunk{processChunk}, encoding)
 	if err != nil {
 		return protocol.ChunkBytes{}, err
