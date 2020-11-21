@@ -33,7 +33,8 @@ class Waveform {
 
 		if (this.options.spectrogramElementID)
 			wsPlugins.push(WaveSurfer.spectrogram.create({
-				container: '#' + this.options.spectrogramElementID
+				container: '#' + this.options.spectrogramElementID,
+				labels: true,
 			}));
 
 
@@ -50,6 +51,7 @@ class Waveform {
 			autoCenter: true,
 			barHeight: 3,
 			plugins: wsPlugins,
+			normalise: true,
 		};
 
 
@@ -152,32 +154,35 @@ class Waveform {
 		}
 
 
-		document.addEventListener("keydown", function (evt) {
-			main.logEvent(evt);
-			if (evt.keyCode === deleteKeyCode) {
-				let regions = main.listRegions();
-				for (let id in regions) {
-					let region = regions[id];
-					if (region.element.classList.contains("selected")) {
-						region.remove();
+		if (this.options.navigationElementID) {
+			document.addEventListener("keydown", function (evt) {
+				main.logEvent(evt);
+
+				if (evt.keyCode === deleteKeyCode) {
+					let regions = main.listRegions();
+					for (let id in regions) {
+						let region = regions[id];
+						if (region.element.classList.contains("selected")) {
+							region.remove();
+						}
 					}
+				} else if (evt.keyCode === rightArrowKeyCode && evt.ctrlKey) {
+					document.getElementById("waveform-skipforward").click();
+				} else if (evt.keyCode === leftArrowKeyCode && evt.ctrlKey) {
+					document.getElementById("waveform-skipback").click();
+				} else if (evt.keyCode === homeKeyCode && evt.ctrlKey) {
+					document.getElementById("waveform-skiptofirst").click();
+				} else if (evt.keyCode === endKeyCode && evt.ctrlKey) {
+					document.getElementById("waveform-skiptolast").click();
+				} else if (evt.keyCode === spaceKeyCode) {
+					if (main.wavesurfer.isPlaying())
+						main.wavesurfer.pause();
+					else
+						main.wavesurfer.play();
 				}
-			} else if (evt.keyCode === rightArrowKeyCode && evt.ctrlKey) {
-				document.getElementById("waveform-skipforward").click();
-			} else if (evt.keyCode === leftArrowKeyCode && evt.ctrlKey) {
-				document.getElementById("waveform-skipback").click();
-			} else if (evt.keyCode === homeKeyCode && evt.ctrlKey) {
-				document.getElementById("waveform-skiptofirst").click();
-			} else if (evt.keyCode === endKeyCode && evt.ctrlKey) {
-				document.getElementById("waveform-skiptolast").click();
-			} else if (evt.keyCode === spaceKeyCode) {
-				if (main.wavesurfer.isPlaying())
-					main.wavesurfer.pause();
-				else
-					main.wavesurfer.play();
-			}
-			return true;
-		});
+				return true;
+			});
+		}
 
 		let waveformResizeObserver = new ResizeObserver(function (source) {
 			let waveform = source[0].target;
@@ -197,24 +202,30 @@ class Waveform {
 	playRegionIndex(index) {
 		let regions = this.listRegions();
 		for (let i = 0; i < regions.length; i++) {
-			if (i === index)
+			if (i === index) {
 				regions[i].play();
+				break;
+			}
 		}
 	}
 
 	playLeftOfRegionIndex(index) {
 		let regions = this.listRegions();
 		for (let i = 0; i < regions.length; i++) {
-			if (i === index)
+			if (i === index) {
 				this.wavesurfer.play(0, regions[i].start);
+				break;
+			}
 		}
 	}
 
 	playRightOfRegionIndex(index) {
 		let regions = this.listRegions();
 		for (let i = 0; i < regions.length; i++) {
-			if (i === index)
+			if (i === index) {
 				this.wavesurfer.play(regions[i].end);
+				break;
+			}
 		}
 	}
 
@@ -231,6 +242,7 @@ class Waveform {
 	}
 
 	loadChunks(chunks, clearBefore) {
+		console.log("loadChunks", chunks);
 		if (clearBefore)
 			this.wavesurfer.clearRegions();
 		for (let i in chunks) {
@@ -246,6 +258,40 @@ class Waveform {
 
 	playRegion(region) {
 		region.play();
+	}
+
+	moveStartForRegionIndex(index, moveAmountInMilliseconds) {
+		let regions = this.listRegions();
+		for (let i = 0; i < regions.length; i++) {
+			if (i == index) {
+				let region = regions[i];
+				let newStart = region.start + (moveAmountInMilliseconds/1000.0)
+				if (newStart < 0)
+					newStart = 0.0;
+				if (newStart >= region.end)
+					newStart = region.end;
+				region.start = newStart;
+				region.update({end: region.end, start: newStart});
+				break;
+			}
+		}
+	}
+
+	moveEndForRegionIndex(index, moveAmountInMilliseconds) {
+		let regions = this.listRegions();
+		for (let i = 0; i < regions.length; i++) {
+			if (i == index) {
+				let region = regions[i];
+				let newEnd = region.end + (moveAmountInMilliseconds/1000.0)
+				if (newEnd < this.length)
+					newEnd = this.length-0.5; // TODO
+				if (newEnd <= region.start)
+					newEnd = region.start;
+				region.end = newEnd;
+				region.update({start: region.start, end: newEnd});
+				break;
+			}
+		}
 	}
 
 	getSelectedRegion() {

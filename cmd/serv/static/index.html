@@ -1,89 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 
-    <head>
+<head>
 	<title>Segment checker</title>
 	<meta charset="utf-8">
 	<link rel="stylesheet" href="layout.css">
 	<link rel="stylesheet" href="style.css">
-    </head>
+</head>
 
-    <body class="selected-font">
+<body class="selected-font">
 	<div class="wrapper">
 
-	    <!-- header row -->
-	    <div class="grid-logo"><img class="rounded-border" src="logo.png" width="50" /></div>
-	    <div class="grid-app_name">Segment checker</div>
+		<!-- header row -->
+		<div class="grid-logo"><img class="rounded-border" src="logo.png" width="50" /></div>
+		<div class="grid-app_name">Segment checker</div>
 
-	    <div class="grid-main smallcaps">
+		<div class="grid-main smallcaps">
 
-		<div style="align: center" class="grid-component rounded-border smallcaps resizable">
-		    <div id="waveform-spectrogram"></div>
-		    <div id="waveform"></div>
-		    <div id="waveform-timeline"></div>
-		    <!-- <audio id="audio"/> -->
+			<div style="" class="grid-component rounded-border smallcaps resizable">
+				<div id="waveform-spectrogram"></div>
+				<div id="waveform"></div>
+				<div id="waveform-timeline"></div>
+				<!-- <audio id="audio"/> -->
+			</div>
+
+			<div class="grid-component smallcaps" style="text-align: center">
+
+				<div style="margin: 10px">
+					<span class="btn" style="background-color:red">bad sample</span>
+					<span class="btn" style="background-color:orange">skip</span>
+					<span class="btn" style="background-color:green">save</span>
+				</div>
+				<div style="margin: 10px">
+					<span class="btn" style="background-color:red">bs+next</span>
+					<span class="btn" style="background-color:orange">skip+next</span>
+					<span class="btn" style="background-color:green">save+next</span>
+				</div>
+				<div style="margin: 10px">
+					<span style="cursor: default" class="btnlabel">play</span>
+					<span id="play-all" class="btn">all</span>
+					<span id="play-label" class="btn">label</span>
+					<span id="play-left" class="btn">left</span>
+					<span id="play-right" class="btn">right</span>
+				</div>
+
+				<div style="margin: 10px">
+					<span>
+						<span class='btn icon' id='skiptofirst'>&laquo;</span>
+						<span class='btn icon' id='skipback'>&lt;</span>
+						<span class='btn icon' id='skipforward'>&gt;</span>
+						<span class='btn icon' id='skiptolast'>&raquo;</span>
+					</span>
+					<span class="btn" style="background-color:lightgrey">reset</span>
+					<span class="btn" style="background-color:yellow">quit</span>
+				</div>
+
+			</div>
+
+			<div class="smallcaps" style="padding: 10px">comment<br />
+				<textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment"
+					rows="4"></textarea>
+			</div>
+
 		</div>
 
-		<div class="grid-component smallcaps" style="text-align: center">
-
-		    <div style="margin: 10px">
-			<span class="btn" style="background-color:red">bad sample</span>
-			<span class="btn" style="background-color:orange">skip</span>
-			<span class="btn" style="background-color:green">save</span>
-		    </div>
-		    <div style="margin: 10px">
-			<span class="btn" style="background-color:red">bs+next</span>
-			<span class="btn" style="background-color:orange">skip+next</span>
-			<span class="btn" style="background-color:green">save+next</span>
-		    </div>
-		    <div style="margin: 10px">
-			<span style="cursor: default" class="btnlabel">play</span>
-			<span id="play-all" class="btn">all</span>
-			<span id="play-label" class="btn">label</span>
-			<span id="play-left" class="btn">left</span>
-			<span id="play-right" class="btn">right</span>
-		    </div>
-
-		    <div style="margin: 10px">
-			<span>
-			    <span class='btn' id='skiptofirst'>&laquo;</span>
-			    <span class='btn' id='skipback'>&lt;</span>
-			    <span class='btn' id='skipforward'>&gt;</span>
-			    <span class='btn' id='skiptolast'>&raquo;</span>
+		<div class="grid-shortcuts smallcaps">shortcuts
+			<span class="nosmallcaps">
+			<table>
+				<thead><tr><th>Key</th><th>Action</th></tr></thead>
+				<tbody id="shortcuts"></tbody>
+			</table>
 			</span>
-			<span class="btn" style="background-color:lightgrey">reset</span>
-			<span class="btn" style="background-color:yellow">quit</span>
-		    </div>
-		    
 		</div>
 
-		<div class="smallcaps" style="padding: 10px">comment<br/>
-		    <textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment" rows="4"></textarea>
-		</div>
+		<!-- EXTERNAL LIBRARIES -->
 
 
-	    </div>
+		<!-- http://wavesurfer-js.org -->
+		<!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
+		<!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js"></script> -->
+		<!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js"></script> -->
 
-	    <!-- EXTERNAL LIBRARIES -->
+		<script src="lib/wavesurfer.js"></script>
+		<script src="lib/wavesurfer.regions.min.js"></script>
+		<script src="lib/wavesurfer.timeline.min.js"></script>
+		<script src="lib/wavesurfer.spectrogram.min.js"></script>
 
+		<!-- OWN LIBRARIES -->
+		<script src="lib.js"></script>
+		<script src="waveform.js"></script>
 
-	    <!-- http://wavesurfer-js.org -->
-	    <!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
-	    <!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js"></script> -->
-	    <!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js"></script> -->
+		<!-- LOCAL CODE -->
+		<script src="main.js"></script>
 
-	    <script src="lib/wavesurfer.js"></script>
-	    <script src="lib/wavesurfer.regions.min.js"></script>
-	    <script src="lib/wavesurfer.timeline.min.js"></script>
-	    <script src="lib/wavesurfer.spectrogram.min.js"></script>
-
-	    <!-- OWN LIBRARIES -->
-	    <script src="lib.js"></script>
-	    <script src="waveform.js"></script>
-
-	    <!-- LOCAL CODE -->
-	    <script src="main.js"></script>
-
-    </body>
+</body>
 
 </html>

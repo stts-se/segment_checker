@@ -28,7 +28,7 @@ type Chunk struct {
 	End int64 `json:"end"`
 }
 
-type ChunkBytes struct {
+type AudioChunk struct {
 	Audio    string `json:"audio"`
 	FileType string `json:"file_type"`
 	Chunk    Chunk  `json:"chunk"`

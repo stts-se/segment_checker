@@ -125,7 +125,7 @@ func TestChunkExtractorFileWithContext(t *testing.T) {
 	leftContext := int64(100)
 	rightContext := int64(100)
 	var chunk protocol.Chunk
-	var got protocol.ChunkBytes
+	var got protocol.AudioChunk
 
 	//
 	chunk = protocol.Chunk{Start: 165, End: 261}

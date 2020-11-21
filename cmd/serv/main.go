@@ -98,7 +98,7 @@ func extractChunk(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	log.Printf("extractChunk output json: %s", string(resJSON))
+	//log.Printf("extractChunk output json: %s", string(resJSON))
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "%s\n", string(resJSON))
 }
