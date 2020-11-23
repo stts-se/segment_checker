@@ -11,6 +11,12 @@ type SourcePayload struct {
 	Chunks      []Chunk `json:"chunks"`
 }
 
+type SegmentPayload struct {
+	URL         string `json:"url"`
+	SegmentType string `json:"segment_type"`
+	Chunk       Chunk  `json:"chunk"`
+}
+
 type SplitRequestPayload struct {
 	URL         string `json:"url"`
 	SegmentType string `json:"segment_type"`
@@ -32,4 +38,19 @@ type AudioChunk struct {
 	Audio    string `json:"audio"`
 	FileType string `json:"file_type"`
 	Chunk    Chunk  `json:"chunk"`
+}
+
+// Annotation
+
+type Status struct {
+	Name      string `json:"name,attr"`
+	Source    string `json:"source,attr"`
+	Timestamp string `json:"timestamp,attr"`
+}
+
+type AnnotationPayload struct {
+	SegmentPayload
+	Labels  []string `json:"labels"`
+	Status  Status   `json:"status"`
+	Comment string   `json:"comment"`
 }
