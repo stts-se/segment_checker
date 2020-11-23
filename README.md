@@ -40,7 +40,7 @@ Only one segment type is revised at a time. For _silence_ segments: if a file co
 
     $ cat 7c8366a8-2d9d-11eb-91e4-2c4d54557184.json 
     {
-      "uuid": "7c8366a8-2d9d-11eb-91e4-2c4d54557184",
+      "uuid": "7c8366a8-2d9d-11eb-91e4-2c4d54557184", // points to the uuid in the corresponding source file
       "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260.wav",
       "segment_type": "silence",
       "chunk": {
