@@ -36,12 +36,14 @@ function setEnabled(enable) {
 	    btn.removeAttribute("disabled");
 	    btn.disabled = false;
 	}
+	document.getElementById("comment").removeAttribute("readonly");
     } else {
 	for (let i=0; i<buttons.length; i++) {
 	    let btn = buttons[i];
 	    btn.classList.add("disabled");
 	    btn.disabled = true;
 	}
+	document.getElementById("comment").setAttribute("readonly", "readonly");
     }
 }
 
@@ -159,12 +161,14 @@ document.getElementById("next").addEventListener("click", function(evt) {
 document.getElementById("reset").addEventListener("click", function(evt) {
     if (!evt.target.disabled) {
 	waveform.updateRegion(0, cachedSegment.chunk.start, cachedSegment.chunk.end);
+	document.getElementById("comment").value = "";
     }
 });
 document.getElementById("quit").addEventListener("click", function(evt) {
     if (!evt.target.disabled) {
 	releaseCurrentSegment();
 	waveform.clear();
+	document.getElementById("comment").value = "";
 	setEnabled(false);
 	loadStats();
     }
@@ -174,6 +178,7 @@ document.getElementById("release-all").addEventListener("click", function(evt) {
     if (!evt.target.disabled) {
 	releaseAll();
 	waveform.clear();
+	document.getElementById("comment").value = "";
 	setEnabled(false);
 	loadStats();
     }
