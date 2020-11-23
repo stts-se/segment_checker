@@ -45,7 +45,7 @@ func httpError(w http.ResponseWriter, serverMsg string, clientMsg string, errCod
 	http.Error(w, clientMsg, errCode)
 }
 
-// send error message as json to client
+// print serverMsg to server log, send error message as json to client
 func jsonError(w http.ResponseWriter, serverMsg string, clientMsg string, errCode int) {
 	log.Error(serverMsg)
 	payload := Message{
@@ -93,8 +93,8 @@ func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
 		URL:          segment.URL,
 		Chunk:        segment.Chunk,
 		SegmentType:  segment.SegmentType,
-		LeftContext:  context, // 1000,
-		RightContext: context, // 1000,
+		LeftContext:  context,
+		RightContext: context,
 	}
 	res, err := chunkExtractor.ProcessURLWithContext(request, "")
 	if err != nil {
@@ -277,13 +277,6 @@ func save(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
-
-	// err = unlock(annotation.UUID, annotation.Status.Source)
-	// if err != nil {
-	// 	msg := fmt.Sprintf("Couldn't unlock segment: %v", err)
-	// 	jsonError(w, msg, msg, http.StatusBadRequest)
-	// 	return
-	// }
 
 	saveMutex.Lock()
 	defer saveMutex.Unlock()
@@ -506,20 +499,6 @@ func checkedSegmentStats() (int, map[string]int, error) {
 	return n, res, err
 }
 
-// for debugging
-func echoJSON(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		msg := fmt.Sprintf("failed to read request body : %v", err)
-		jsonError(w, msg, msg, http.StatusBadRequest)
-		return
-	}
-	dbg("echoJSON | input: %s", string(body))
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, "%s\n", string(body))
-}
-
 var walkedURLs []string
 
 func generateDoc(w http.ResponseWriter, r *http.Request) {
@@ -549,10 +528,9 @@ func loadData(dataDir string) error {
 var cfg = &Config{}
 
 type Config struct {
-	Host     *string `json:"host"`
-	Port     *string `json:"port"`
-	ServeDir *string `json:"static_dir"`
-	//AudioDir *string `json:"audio_dir"`
+	Host              *string `json:"host"`
+	Port              *string `json:"port"`
+	ServeDir          *string `json:"static_dir"`
 	SourceDataDir     *string `json:"source_data_dir"`
 	AnnotationDataDir *string `json:"annotation_data_dir"`
 	Debug             *bool   `json:"debug"`
@@ -571,7 +549,6 @@ func main() {
 	cfg.Host = flag.String("h", "localhost", "Server `host`")
 	cfg.Port = flag.String("p", "7371", "Server `port`")
 	cfg.ServeDir = flag.String("serve", "static", "Serve static `folder`")
-	//cfg.AudioDir = flag.String("audio", "audio", "Audio `folder`")
 	cfg.SourceDataDir = flag.String("source", "", "Source data `folder`")
 	cfg.AnnotationDataDir = flag.String("annotation", "", "Annotation data `folder`")
 
@@ -621,7 +598,6 @@ func main() {
 	r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
 	r.HandleFunc("/releaseall/{username}", releaseAll).Methods("GET")
 	r.HandleFunc("/stats/", stats).Methods("GET")
-	//r.HandleFunc("/echo_json/", echoJSON).Methods("POST")
 	r.HandleFunc("/doc/", generateDoc).Methods("GET")
 
 	docs := make(map[string]string)
