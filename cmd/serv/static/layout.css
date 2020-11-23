@@ -1,6 +1,6 @@
 .wrapper{
     display:grid;
-    grid-template-columns: 100px 800px 50px 300px;
+    grid-template-columns: 100px 800px 50px 800px auto;
     grid-auto-rows: 50px auto;
     grid-gap:1em;
     justify-items:stretch;
@@ -33,15 +33,9 @@
     margin: 10px;   
 }
 
-.grid-shortcuts {
-    grid-column:4;
-    grid-row:2/5;
-}
-
-
-
-.rounded-border {
-    border: 1px solid #ccc;
-    border-radius: 10px;
+.grid-rightpanel {
+    margin-top: 10px;
+    grid-column:4/10;
+    grid-row:2;
 }
 

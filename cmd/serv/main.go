@@ -5,43 +5,46 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
 
+	"github.com/stts-se/segment_checker/log"
 	"github.com/stts-se/segment_checker/modules"
 	"github.com/stts-se/segment_checker/protocol"
 )
 
-type ClientMessage struct {
+type Message struct {
 	//ClientID    string `json:"client_id"`
 	MessageType string `json:"message_type"`
 	Payload     string `json:"payload"`
-	Error       string `json:"error"`
+	Error       string `json:"error,omitempty"`
+	Info        string `json:"info,omitempty"`
 }
 
 var chunkExtractor modules.ChunkExtractor
 
 // print serverMsg to server log, and return an http error with clientMsg and the specified error code (http.StatusInternalServerError, etc)
 func httpError(w http.ResponseWriter, serverMsg string, clientMsg string, errCode int) {
-	log.Printf("error : %s", serverMsg)
+	log.Error(serverMsg)
 	http.Error(w, clientMsg, errCode)
 }
 
 // send error message as json to client
 func jsonError(w http.ResponseWriter, serverMsg string, clientMsg string, errCode int) {
-	log.Printf("error : %s", serverMsg)
-	payload := ClientMessage{
+	log.Error(serverMsg)
+	payload := Message{
 		Error: clientMsg,
 	}
 	resJSON, err := json.Marshal(payload)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal result : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
+		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -49,47 +52,290 @@ func jsonError(w http.ResponseWriter, serverMsg string, clientMsg string, errCod
 	return
 }
 
-// for debugging
-func echoJSON(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		msg := fmt.Sprintf("failed to read request body : %v", err)
-		log.Println(msg)
-		http.Error(w, msg, http.StatusBadRequest)
-		return
+func dbg(format string, args ...interface{}) {
+	if *cfg.Debug {
+		log.Debug(format, args...)
 	}
-	log.Printf("echoJSON input json: %s", string(body))
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, "%s\n", string(body))
 }
 
-func extractChunk(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	if r.Method == "OPTIONS" {
-		return
-	}
-	body, err := ioutil.ReadAll(r.Body)
+func load0(sourceFile, userName string, w http.ResponseWriter) {
+	fName := path.Join(*cfg.SourceDataDir, sourceFile)
+	bts, err := ioutil.ReadFile(fName)
 	if err != nil {
-		msg := fmt.Sprintf("failed to read request body : %v", err)
-		log.Println(msg)
-		http.Error(w, msg, http.StatusBadRequest)
+		msg := fmt.Sprintf("Read file failed: %v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
-	log.Printf("extractChunk input json: %s", string(body))
-
-	source := protocol.SplitRequestPayload{}
-	err = json.Unmarshal(body, &source)
+	var segment protocol.SegmentPayload
+	err = json.Unmarshal(bts, &segment)
 	if err != nil {
-		msg := fmt.Sprintf("failed to unmarshal incoming JSON : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
+		msg := fmt.Sprintf("Unmarshal failed: %v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
-	res, err := chunkExtractor.ProcessURLWithContext(source, "")
+	err = lock(segment.UUID, userName)
+	if err != nil {
+		msg := fmt.Sprintf("Couldn't lock segment: %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	request := protocol.SplitRequestPayload{
+		URL:          segment.URL,
+		Chunk:        segment.Chunk,
+		SegmentType:  segment.SegmentType,
+		LeftContext:  1000,
+		RightContext: 1000,
+	}
+	res, err := chunkExtractor.ProcessURLWithContext(request, "")
 	if err != nil {
 		msg := fmt.Sprintf("chunk extractor failed : %v", err)
 		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	res.UUID = segment.UUID
+	res.URL = segment.URL
+	res.SegmentType = segment.SegmentType
+
+	resJSON, err := json.Marshal(res)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal result : %v", err)
+		httpError(w, msg, msg, http.StatusBadRequest)
+		return
+
+	}
+	msg := Message{
+		MessageType: "audio_chunk",
+		Payload:     string(resJSON),
+	}
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal msg : %v", err)
+		httpError(w, msg, msg, http.StatusBadRequest)
+		return
+
+	}
+	//log.Info("load output json: %s", string(msgJSON))
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s\n", string(msgJSON))
+}
+
+func load(w http.ResponseWriter, r *http.Request) {
+	sourceFile := mux.Vars(r)["sourcefile"]
+	userName := mux.Vars(r)["username"]
+	if sourceFile == "" {
+		msg := fmt.Sprintf("Source file not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	if userName == "" {
+		msg := fmt.Sprintf("User name not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	log.Info("load | input: %s %s", sourceFile, userName)
+	load0(sourceFile, userName, w)
+}
+
+func next(w http.ResponseWriter, r *http.Request) {
+	userName := mux.Vars(r)["username"]
+	if userName == "" {
+		msg := fmt.Sprintf("User name not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	currID := mux.Vars(r)["currid"]
+	if currID == "undefined" {
+		currID = ""
+	}
+
+	log.Info("next | input: %s %s", userName, currID)
+	sourceFile, err := getNextCheckableSegment(currID)
+	if err != nil {
+		msg := fmt.Sprintf("%v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	load0(sourceFile, userName, w)
+}
+
+func release(w http.ResponseWriter, r *http.Request) {
+	uuid := mux.Vars(r)["uuid"]
+	userName := mux.Vars(r)["username"]
+	if uuid == "" {
+		msg := fmt.Sprintf("uuid not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	if userName == "" {
+		msg := fmt.Sprintf("User name not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	log.Info("load | input: %s %s", uuid, userName)
+
+	err := unlock(uuid, userName)
+	if err != nil {
+		msg := fmt.Sprintf("Couldn't unlock segment: %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	msg := Message{Info: fmt.Sprintf("Unlocked segment %s for user %s", uuid, userName)}
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal msg : %v", err)
+		httpError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s\n", string(msgJSON))
+}
+
+func releaseAll(w http.ResponseWriter, r *http.Request) {
+	userName := mux.Vars(r)["username"]
+	if userName == "" {
+		msg := fmt.Sprintf("User name not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	log.Info("load | input: %s", userName)
+
+	n := 0
+	for k, v := range lockMap {
+		if v == userName {
+			unlock(k, v)
+			n++
+		}
+	}
+
+	msg := Message{Info: fmt.Sprintf("Unlocked %d segments for user %s", n, userName)}
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal msg : %v", err)
+		httpError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s\n", string(msgJSON))
+}
+
+func save(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		msg := fmt.Sprintf("failed to read request body : %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	log.Info("save | input: %s", string(body))
+
+	annotation := protocol.AnnotationPayload{}
+	err = json.Unmarshal(body, &annotation)
+	if err != nil {
+		msg := fmt.Sprintf("failed to unmarshal incoming JSON : %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", annotation.UUID))
+	writeJSON, err := json.MarshalIndent(annotation, " ", " ")
+	if err != nil {
+		msg := fmt.Sprintf("Marshal failed: %v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+
+	// err = unlock(annotation.UUID, annotation.Status.Source)
+	// if err != nil {
+	// 	msg := fmt.Sprintf("Couldn't unlock segment: %v", err)
+	// 	jsonError(w, msg, msg, http.StatusBadRequest)
+	// 	return
+	// }
+
+	saveMutex.Lock()
+	defer saveMutex.Unlock()
+	file, err := os.Create(f)
+	if err != nil {
+		msg := fmt.Sprintf("Couldn't create file %s: %v", f, err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+	file.Write(writeJSON)
+
+	msg := Message{Info: fmt.Sprintf("Saved annotation for segment with id %s", annotation.UUID)}
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal msg : %v", err)
+		httpError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	// log.Info("save output json: %s", string(msgJSON))
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s\n", string(msgJSON))
+}
+
+func locked(uuid string) bool {
+	lockMutex.RLock()
+	defer lockMutex.RUnlock()
+	_, res := lockMap[uuid]
+	return res
+}
+
+func lock(uuid, user string) error {
+	lockMutex.Lock()
+	defer lockMutex.Unlock()
+	lockedBy, exists := lockMap[uuid]
+	if exists {
+		return fmt.Errorf("%v is already locked by user %s", uuid, lockedBy)
+	}
+	lockMap[uuid] = user
+	return nil
+}
+
+func unlock(uuid, user string) error {
+	lockMutex.Lock()
+	lockedBy, exists := lockMap[uuid]
+	if !exists {
+		return fmt.Errorf("%v is not locked", uuid)
+	}
+	if lockedBy != user {
+		return fmt.Errorf("%v is not locked by user %s", uuid, user)
+	}
+	delete(lockMap, uuid)
+	defer lockMutex.Unlock()
+	return nil
+}
+
+func stats(w http.ResponseWriter, r *http.Request) {
+	allSegs, err := listAllSegments()
+	if err != nil {
+		msg := fmt.Sprintf("Couldn't list segments: %v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	checkableSegs, err := listCheckableSegments()
+	if err != nil {
+		msg := fmt.Sprintf("Couldn't list checkable segments: %v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	nChecked, checkedStats, err := checkedSegmentStats()
+	if err != nil {
+		msg := fmt.Sprintf("Couldn't list checked segments: %v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	res := map[string]int{
+		"total":     len(allSegs),
+		"checked":   nChecked,
+		"checkable": len(checkableSegs),
+		"locked":    len(lockMap),
+	}
+	for label, count := range checkedStats {
+		res[label] = count
 	}
 	resJSON, err := json.Marshal(res)
 	if err != nil {
@@ -98,9 +344,148 @@ func extractChunk(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	//log.Printf("extractChunk output json: %s", string(resJSON))
+	msg := Message{
+		MessageType: "stats",
+		Payload:     string(resJSON),
+	}
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal msg : %v", err)
+		httpError(w, msg, msg, http.StatusBadRequest)
+		return
+
+	}
+	//log.Info("load output json: %s", string(msgJSON))
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, "%s\n", string(resJSON))
+	fmt.Fprintf(w, "%s\n", string(msgJSON))
+
+}
+
+func getNextCheckableSegment(currID string) (string, error) {
+	files, err := ioutil.ReadDir(*cfg.SourceDataDir)
+	if err != nil {
+		return "", fmt.Errorf("couldn't list files in folder %s : %v", *cfg.SourceDataDir, err)
+	}
+	seenCurrID := false
+	fallbackFile := ""
+	for _, sourceFile := range files {
+		if strings.HasSuffix(sourceFile.Name(), ".json") {
+			bts, err := ioutil.ReadFile(path.Join(*cfg.SourceDataDir, sourceFile.Name()))
+			if err != nil {
+				return "", fmt.Errorf("couldn't read file %s : %v", sourceFile.Name(), err)
+			}
+			var segment protocol.SegmentPayload
+			err = json.Unmarshal(bts, &segment)
+			if err != nil {
+				return "", fmt.Errorf("couldn't unmarshal json : %v", err)
+			}
+			if segment.UUID == currID {
+				seenCurrID = true
+				continue
+			}
+			annotationFile := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
+			_, err = os.Stat(annotationFile)
+			if os.IsNotExist(err) && !locked(segment.UUID) {
+				if currID == "" || seenCurrID {
+					return sourceFile.Name(), nil
+				}
+				fallbackFile = sourceFile.Name()
+			}
+
+		}
+	}
+	if fallbackFile != "" {
+		return fallbackFile, nil
+	}
+	return "", fmt.Errorf("couldn't find any segments to check")
+}
+
+func listAllSegments() ([]protocol.SegmentPayload, error) {
+	res := []protocol.SegmentPayload{}
+	files, err := ioutil.ReadDir(*cfg.SourceDataDir)
+	if err != nil {
+		return res, fmt.Errorf("couldn't list files in folder %s : %v", *cfg.SourceDataDir, err)
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".json") {
+			bts, err := ioutil.ReadFile(path.Join(*cfg.SourceDataDir, f.Name()))
+			if err != nil {
+				return res, fmt.Errorf("couldn't read file %s : %v", f, err)
+			}
+			var segment protocol.SegmentPayload
+			err = json.Unmarshal(bts, &segment)
+			if err != nil {
+				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
+			}
+			res = append(res, segment)
+		}
+	}
+	return res, nil
+}
+
+func listCheckableSegments() ([]protocol.SegmentPayload, error) {
+	res := []protocol.SegmentPayload{}
+	all, err := listAllSegments()
+	for _, seg := range all {
+		f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", seg.UUID))
+		_, err := os.Stat(f)
+		if os.IsNotExist(err) && !locked(seg.UUID) {
+			res = append(res, seg)
+		}
+	}
+	return res, err
+}
+
+func checkedSegmentStats() (int, map[string]int, error) {
+	res := map[string]int{}
+	all, err := listAllSegments()
+	n := 0
+	for _, seg := range all {
+		f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", seg.UUID))
+		_, err := os.Stat(f)
+		if os.IsNotExist(err) {
+			continue
+		}
+		bts, err := ioutil.ReadFile(f)
+		if err != nil {
+			return n, res, fmt.Errorf("couldn't read file %s : %v", f, err)
+		}
+		var segment protocol.AnnotationPayload
+		err = json.Unmarshal(bts, &segment)
+		if err != nil {
+			return n, res, fmt.Errorf("couldn't unmarshal json : %v", err)
+		}
+		n++
+		if _, ok := res["status:"+segment.Status.Name]; !ok {
+			res["status:"+segment.Status.Name] = 0
+		}
+		res["status:"+segment.Status.Name]++
+		if _, ok := res["user:"+segment.Status.Source]; !ok {
+			res["user:"+segment.Status.Source] = 0
+		}
+		res["editor:"+segment.Status.Source]++
+		for _, label := range segment.Labels {
+			if _, ok := res["editor:"+label]; !ok {
+				res["editor:"+label] = 0
+			}
+			res["editor:"+label]++
+		}
+	}
+	return n, res, err
+}
+
+// for debugging
+func echoJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		msg := fmt.Sprintf("failed to read request body : %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	dbg("echoJSON | input: %s", string(body))
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s\n", string(body))
 }
 
 var walkedURLs []string
@@ -114,18 +499,58 @@ func generateDoc(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "</body></html>")
 }
 
+func loadData(dataDir string) error {
+	if dataDir == "" {
+		return fmt.Errorf("data dir not provided")
+	}
+	info, err := os.Stat(dataDir)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("provided data dir does not exist: %s", dataDir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("provided data dir is not a directory: %s", dataDir)
+	}
+	// todo: load into memory or read from disk?
+	return nil
+}
+
+var cfg = &Config{}
+
+type Config struct {
+	Host     *string `json:"host"`
+	Port     *string `json:"port"`
+	ServeDir *string `json:"static_dir"`
+	//AudioDir *string `json:"audio_dir"`
+	SourceDataDir     *string `json:"source_data_dir"`
+	AnnotationDataDir *string `json:"annotation_data_dir"`
+	Debug             *bool   `json:"debug"`
+}
+
+var saveMutex = sync.Mutex{}          // for file saving
+var lockMutex = sync.RWMutex{}        // for segment locking
+var lockMap = make(map[string]string) // segment uuid id -> user
+
 func main() {
 	var err error
 
 	cmd := path.Base(os.Args[0])
 
 	// Flags
-	host := flag.String("h", "localhost", "Server `host`")
-	port := flag.String("p", "7371", "Server `port`")
-	serveDir := flag.String("s", "static", "Serve `folder`")
+	cfg.Host = flag.String("h", "localhost", "Server `host`")
+	cfg.Port = flag.String("p", "7371", "Server `port`")
+	cfg.ServeDir = flag.String("serve", "static", "Serve static `folder`")
+	//cfg.AudioDir = flag.String("audio", "audio", "Audio `folder`")
+	cfg.SourceDataDir = flag.String("source", "", "Source data `folder`")
+	cfg.AnnotationDataDir = flag.String("annotation", "", "Annotation data `folder`")
+
+	cfg.Debug = flag.Bool("debug", false, "Debug mode")
 	protocol := "http"
+
 	help := flag.Bool("help", false, "Print usage and exit")
 	flag.Parse()
+
+	cfgJSON, _ := json.Marshal(cfg)
+	log.Info("Server config: %#v", string(cfgJSON))
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s <options> <folder to serve>\n", cmd)
@@ -143,16 +568,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = loadData(*cfg.SourceDataDir)
+	if err != nil {
+		log.Fatal("Couldn't load data: %v", err)
+	}
+
 	chunkExtractor, err = modules.NewChunkExtractor()
 	if err != nil {
-		log.Fatalf("Couldn't initialize chunk extractor: %v", err)
+		log.Fatal("Couldn't initialize chunk extractor: %v", err)
 	}
 
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
-	r.HandleFunc("/extract_chunk/", extractChunk).Methods("POST", "OPTIONS")
-	r.HandleFunc("/echo_json/", echoJSON).Methods("POST", "OPTIONS")
+	r.HandleFunc("/save/", save).Methods("POST")
+	r.HandleFunc("/load/{sourcefile}/{username}", load).Methods("GET")
+	r.HandleFunc("/next/{currid}/{username}", next).Methods("GET")
+	r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
+	r.HandleFunc("/releaseall/{username}", releaseAll).Methods("GET")
+	r.HandleFunc("/stats/", stats).Methods("GET")
+	//r.HandleFunc("/echo_json/", echoJSON).Methods("POST")
 	r.HandleFunc("/doc/", generateDoc).Methods("GET")
 
 	docs := make(map[string]string)
@@ -169,19 +604,21 @@ func main() {
 	})
 	if err != nil {
 		msg := fmt.Sprintf("failure to walk URLs : %v", err)
-		log.Println(msg)
+		log.Error(msg)
 		return
 	}
 
-	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(*serveDir))))
+	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(*cfg.ServeDir))))
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         *host + ":" + *port,
+		Addr:         *cfg.Host + ":" + *cfg.Port,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	log.Printf("Server started on %s://%s", protocol, *host+":"+*port)
-	log.Printf("Serving folder %s", *serveDir)
-	log.Fatal(srv.ListenAndServe())
+	if err = srv.ListenAndServe(); err != nil {
+		log.Fatal("Server failure: %v", err)
+	}
+	log.Info("Server started on %s://%s", protocol, *cfg.Host+":"+*cfg.Port)
+	log.Info("Serving folder %s", *cfg.ServeDir)
 }
