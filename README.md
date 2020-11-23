@@ -3,49 +3,59 @@
 
 Tool for revising segment boundaries.
 
-Source data: Audio URL with segment type and time chunks (in milliseconds). Example:
+## Source data
 
-    {
-      "url": "http://localhost/audio/fgfgfgfgf.wav",
-      "segment_type": "silence",
-      "chunks": [
-       {
-        "start": 301,
-        "end": 351
-       },
-       {
-        "start": 1908,
-        "end": 1958
-       }
-      ]
-    }
-     
-   _or_
-     
-    [
+Audio URL with segment type and time chunks (in milliseconds). Example:
+
+    
+     $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00001.json 
      {
-      "url": "http://localhost/audio/fgfgfgfgf.wav",
+      "uuid": "7c836914-2d9d-11eb-91e4-2c4d54557184",
+      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260.wav",
       "segment_type": "silence",
       "chunk": {
-        "start": 301,
-        "end": 351
-       },
-     },
-     {
-      "url": "http://localhost/audio/fgfgfgfgf.wav",
-      "segment_type": "silence",
-      "chunk": {
-        "start": 1908,
-        "end": 1958
-       },
+       "start": 26973,
+       "end": 28067
+      }
      }
-    ]
+     
+     $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00002.json 
+     {
+      "uuid": "7c836a21-2d9d-11eb-91e4-2c4d54557184",
+      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260.wav",
+      "segment_type": "silence",
+      "chunk": {
+       "start": 32550,
+       "end": 36004
+      }
+     }
 
 
 
 Segment types: silence, "e" (the vowel), etc.
 
 Only one segment type is revised at a time. For _silence_ segments: if a file contains three pauses, it will be revised in three steps. Other segment types are not checked.
+
+## Annotation data
+
+    $ cat 7c8366a8-2d9d-11eb-91e4-2c4d54557184.json 
+    {
+      "uuid": "7c8366a8-2d9d-11eb-91e4-2c4d54557184",
+      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260.wav",
+      "segment_type": "silence",
+      "chunk": {
+       "start": 1500,
+       "end": 3822
+      },
+      "labels": [],
+      "status": {
+       "name": "ok",
+       "source": "hanna",
+       "timestamp": "Mon, 23 Nov 2020 19:24:11 GMT"
+      },
+      "comment": ""
+     }
+
 
 ## Layout draft
 
