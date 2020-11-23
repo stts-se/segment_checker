@@ -20,6 +20,7 @@ import (
 	"github.com/stts-se/segment_checker/protocol"
 )
 
+// Message for sending to client
 type Message struct {
 	//ClientID    string `json:"client_id"`
 	MessageType string `json:"message_type"`
@@ -527,6 +528,7 @@ func loadData(dataDir string) error {
 
 var cfg = &Config{}
 
+// Config for server
 type Config struct {
 	Host              *string `json:"host"`
 	Port              *string `json:"port"`
