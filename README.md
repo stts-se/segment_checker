@@ -96,7 +96,6 @@ Create a demo as soon as possible
 
 # Runnable example server
 
-You need
 1. Retrieve the file `audio.zip` provided by Hanna
 2. Retrieve the file `data.zip` provided by Hanna
 3. `git clone git@github.com:stts-se/segment_checker`
