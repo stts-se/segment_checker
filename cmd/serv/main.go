@@ -616,9 +616,9 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
+	log.Info("Server started on %s://%s", protocol, *cfg.Host+":"+*cfg.Port)
+	log.Info("Serving folder %s", *cfg.ServeDir)
 	if err = srv.ListenAndServe(); err != nil {
 		log.Fatal("Server failure: %v", err)
 	}
-	log.Info("Server started on %s://%s", protocol, *cfg.Host+":"+*cfg.Port)
-	log.Info("Serving folder %s", *cfg.ServeDir)
 }
