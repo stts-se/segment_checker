@@ -8,25 +8,25 @@ Tool for revising segment boundaries.
 Audio URL with segment type and time chunks (in milliseconds). Example:
 
     
-     $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00001.json 
-     {
+    $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00000.json
+    {
+      "uuid": "7c8366a8-2d9d-11eb-91e4-2c4d54557184",
+      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260.wav",
+      "segment_type": "silence",
+      "chunk": {
+       "start": 1500,
+       "end": 3822
+      }
+     }
+     
+    $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00001.json
+    {
       "uuid": "7c836914-2d9d-11eb-91e4-2c4d54557184",
       "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260.wav",
       "segment_type": "silence",
       "chunk": {
        "start": 26973,
        "end": 28067
-      }
-     }
-     
-     $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00002.json 
-     {
-      "uuid": "7c836a21-2d9d-11eb-91e4-2c4d54557184",
-      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260.wav",
-      "segment_type": "silence",
-      "chunk": {
-       "start": 32550,
-       "end": 36004
       }
      }
 
