@@ -468,8 +468,8 @@ window.addEventListener("load", function () {
     setEnabled(false);
     
     let params = new URLSearchParams(window.location.search);
-    if (params.get('user'))
-        document.getElementById("username").innerText = params.get('user');
+    if (params.get('username'))
+        document.getElementById("username").innerText = params.get('username');
     else {
 	let msg = "Username unset! Reload page with URL param ?username=NAME";
 	alert(msg);
