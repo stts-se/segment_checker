@@ -48,7 +48,7 @@ function setEnabled(enable) {
 }
 
 function loadSegmentFromFile(sourceSegmentFile) {
-    let url = baseURL + "/load/" + sourceSegmentFile + "/" + document.getElementById("username").innerText;
+    let url = baseURL + "/load?sourcefile=" + sourceSegmentFile + "&context=1000&&username=" + document.getElementById("username").innerText;
 
     fetch(url,
           {
@@ -132,15 +132,15 @@ document.getElementById("play-right").addEventListener("click", function (evt) {
 
 document.getElementById("save-badsample").addEventListener("click", function(evt) {
     if (!evt.target.disabled)
-	save({status: "skip", label: "bad sample"});
+	save({status: "skip", label: "bad sample", callback: loadStats});
 });
 document.getElementById("save-skip").addEventListener("click", function(evt) {
     if (!evt.target.disabled)
-	save({status: "skip"});
+	save({status: "skip", callback: loadStats});
 });
 document.getElementById("save-ok").addEventListener("click", function(evt) {
     if (!evt.target.disabled)
-	save({status: "ok"});
+	save({status: "ok", callback: loadStats});
 });
 document.getElementById("save-badsample-next").addEventListener("click", function(evt) {
     if (!evt.target.disabled)
@@ -324,10 +324,10 @@ document.getElementById("clear_messages").addEventListener("click", function (ev
 function next() {
     releaseCurrentSegment();
 
-    let currID = "undefined";
+    let url = baseURL + "/next/?username=" + document.getElementById("username").innerText;
+    url = url + "&context=1000";
     if (cachedSegment && cachedSegment !== null)
-	currID = cachedSegment.uuid;
-    let url = baseURL + "/next/" + currID + "/" + document.getElementById("username").innerText;
+    	url = url + "&currid="+cachedSegment.uuid;
     
     fetch(url,
           {
@@ -336,7 +336,6 @@ function next() {
                   'Accept': 'application/json, text/plain, */*',
                   'Content-Type': 'application/json'
               },
-              //body: JSON.stringify(payload)
           })
         .then(function (res) { return res.json(); })
         .then(function (data) {

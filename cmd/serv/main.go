@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +26,15 @@ type Message struct {
 	Payload     string `json:"payload"`
 	Error       string `json:"error,omitempty"`
 	Info        string `json:"info,omitempty"`
+}
+
+func getParam(paramName string, r *http.Request) string {
+	res := r.FormValue(paramName)
+	if res != "" {
+		return res
+	}
+	vars := mux.Vars(r)
+	return vars[paramName]
 }
 
 var chunkExtractor modules.ChunkExtractor
@@ -58,7 +68,7 @@ func dbg(format string, args ...interface{}) {
 	}
 }
 
-func load0(sourceFile, userName string, w http.ResponseWriter) {
+func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
 	fName := path.Join(*cfg.SourceDataDir, sourceFile)
 	bts, err := ioutil.ReadFile(fName)
 	if err != nil {
@@ -83,8 +93,8 @@ func load0(sourceFile, userName string, w http.ResponseWriter) {
 		URL:          segment.URL,
 		Chunk:        segment.Chunk,
 		SegmentType:  segment.SegmentType,
-		LeftContext:  1000,
-		RightContext: 1000,
+		LeftContext:  context, // 1000,
+		RightContext: context, // 1000,
 	}
 	res, err := chunkExtractor.ProcessURLWithContext(request, "")
 	if err != nil {
@@ -120,8 +130,10 @@ func load0(sourceFile, userName string, w http.ResponseWriter) {
 }
 
 func load(w http.ResponseWriter, r *http.Request) {
-	sourceFile := mux.Vars(r)["sourcefile"]
-	userName := mux.Vars(r)["username"]
+	var err error
+	sourceFile := getParam("sourcefile", r)
+	userName := getParam("username", r)
+	contextS := getParam("context", r)
 	if sourceFile == "" {
 		msg := fmt.Sprintf("Source file not provided")
 		jsonError(w, msg, msg, http.StatusBadRequest)
@@ -132,35 +144,55 @@ func load(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	log.Info("load | input: %s %s", sourceFile, userName)
-	load0(sourceFile, userName, w)
+	context := int64(1000)
+	if contextS != "" {
+		context, err = strconv.ParseInt(contextS, 10, 64)
+		if err != nil {
+			msg := fmt.Sprintf("Couldn't parse int %s", contextS)
+			jsonError(w, msg, msg, http.StatusBadRequest)
+			return
+		}
+	}
+	log.Info("load | input: %s %s %v", sourceFile, userName, contextS)
+	load0(sourceFile, userName, context, w)
 }
 
 func next(w http.ResponseWriter, r *http.Request) {
-	userName := mux.Vars(r)["username"]
+	var err error
+	userName := getParam("username", r)
+	currID := getParam("currid", r)
+	contextS := getParam("context", r)
 	if userName == "" {
 		msg := fmt.Sprintf("User name not provided")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	currID := mux.Vars(r)["currid"]
 	if currID == "undefined" {
 		currID = ""
 	}
+	context := int64(1000)
+	if contextS != "" {
+		context, err = strconv.ParseInt(contextS, 10, 64)
+		if err != nil {
+			msg := fmt.Sprintf("Couldn't parse int %s", contextS)
+			jsonError(w, msg, msg, http.StatusBadRequest)
+			return
+		}
+	}
 
-	log.Info("next | input: %s %s", userName, currID)
+	log.Info("next | input: %s %s %v", userName, currID, contextS)
 	sourceFile, err := getNextCheckableSegment(currID)
 	if err != nil {
 		msg := fmt.Sprintf("%v", err)
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	load0(sourceFile, userName, w)
+	load0(sourceFile, userName, context, w)
 }
 
 func release(w http.ResponseWriter, r *http.Request) {
-	uuid := mux.Vars(r)["uuid"]
-	userName := mux.Vars(r)["username"]
+	uuid := getParam("uuid", r)
+	userName := getParam("username", r)
 	if uuid == "" {
 		msg := fmt.Sprintf("uuid not provided")
 		jsonError(w, msg, msg, http.StatusBadRequest)
@@ -192,7 +224,7 @@ func release(w http.ResponseWriter, r *http.Request) {
 }
 
 func releaseAll(w http.ResponseWriter, r *http.Request) {
-	userName := mux.Vars(r)["username"]
+	userName := getParam("username", r)
 	if userName == "" {
 		msg := fmt.Sprintf("User name not provided")
 		jsonError(w, msg, msg, http.StatusBadRequest)
@@ -460,15 +492,15 @@ func checkedSegmentStats() (int, map[string]int, error) {
 			res["status:"+segment.Status.Name] = 0
 		}
 		res["status:"+segment.Status.Name]++
-		if _, ok := res["user:"+segment.Status.Source]; !ok {
-			res["user:"+segment.Status.Source] = 0
+		if _, ok := res["editor:"+segment.Status.Source]; !ok {
+			res["editor:"+segment.Status.Source] = 0
 		}
 		res["editor:"+segment.Status.Source]++
 		for _, label := range segment.Labels {
-			if _, ok := res["editor:"+label]; !ok {
-				res["editor:"+label] = 0
+			if _, ok := res["label:"+label]; !ok {
+				res["label:"+label] = 0
 			}
-			res["editor:"+label]++
+			res["label:"+label]++
 		}
 	}
 	return n, res, err
@@ -582,8 +614,10 @@ func main() {
 	r.StrictSlash(true)
 
 	r.HandleFunc("/save/", save).Methods("POST")
-	r.HandleFunc("/load/{sourcefile}/{username}", load).Methods("GET")
-	r.HandleFunc("/next/{currid}/{username}", next).Methods("GET")
+	//r.HandleFunc("/load/{sourcefile}/{username}", load).Methods("GET")
+	//r.HandleFunc("/next/{currid}/{username}", next).Methods("GET")
+	r.HandleFunc("/load/{sourcefile}", load).Methods("GET")
+	r.HandleFunc("/next", next).Methods("GET")
 	r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
 	r.HandleFunc("/releaseall/{username}", releaseAll).Methods("GET")
 	r.HandleFunc("/stats/", stats).Methods("GET")
