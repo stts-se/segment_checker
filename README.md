@@ -55,7 +55,8 @@ Only one segment type is revised at a time. For _silence_ segments: if a file co
 
 * manually adjust segment boundaries, one chunk at a time
 * play buttons for left context/right context/segment only/all
-* mark with status "Bad sample", "SKIP" or "OK"
+* mark with status "SKIP" or "OK"
+* optional label "Bad sample"
 * one free text comment is allowed
 * include username + timestamp in status?
 * navigate to next, prev, first, last
