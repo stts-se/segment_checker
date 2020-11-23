@@ -391,12 +391,12 @@ class Waveform {
 	let h = wsPane.offsetHeight;
 	let w = wsPane.offsetWidth;
 	this.wavesurfer.regions.clear();
-	this.wavesurfer.timeline.destroy();
-	this.wavesurfer.spectrogram.destroy();
+	// this.wavesurfer.timeline.destroy();
+	// this.wavesurfer.spectrogram.destroy();
 	this.wavesurfer.empty();
 	//this.wavesurfer.cursorColor = "transparent";
-	wsPane.style["height"] = h + "px";
-	wsPane.style["width"] = w + "px";
+	// wsPane.style["height"] = h + "px";
+	// wsPane.style["width"] = w + "px";
     }
     
     // LIB
