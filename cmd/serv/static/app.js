@@ -499,15 +499,15 @@ function loadKeyboardShortcuts() {
     ele.innerHTML = "";
     Object.keys(shortcuts).forEach(function (key) {
         let id = shortcuts[key].buttonID;
-        let desc = shortcuts[key].desc;
-        if (id && desc) {
-            document.getElementById(id).title = desc;
+        let tooltip = shortcuts[key].tooltip;
+        if (id && tooltip) {
+            document.getElementById(id).title = "key: " + tooltip;
         }
-        if (desc && shortcuts[key].funcDesc) {
+        if (tooltip && shortcuts[key].funcDesc) {
             let tr = document.createElement("tr");
             let td1 = document.createElement("td");
             let td2 = document.createElement("td");
-            td1.innerHTML = desc;
+            td1.innerHTML = tooltip;
             td2.innerHTML = shortcuts[key].funcDesc;
             tr.appendChild(td1);
             tr.appendChild(td2);
@@ -517,20 +517,20 @@ function loadKeyboardShortcuts() {
 }
 
 let shortcuts = {
-    'ctrl ArrowLeft' : { desc: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function() { waveform.moveStartForRegionIndex(0, -5)}},
-    'ctrl ArrowRight' : { desc: 'ctrl right', funcDesc: 'Move left boundary to the right', func: function() { waveform.moveStartForRegionIndex(0, 5)}},
-    'shift ArrowLeft' : { desc: 'shift left', funcDesc: 'Move right boundary to the left', func: function() { waveform.moveEndForRegionIndex(0, -5)}},
-    'shift ArrowRight' : { desc: 'shift right', funcDesc: 'Move right boundary to the right', func: function() { waveform.moveEndForRegionIndex(0, 5)}},
-    'ArrowLeft' : { desc: 'left', funcDesc: 'Play left context', buttonID: 'play-left'},
-    'ArrowRight': { desc: 'right', funcDesc: 'Play right context', buttonID: 'play-right'},
-    'ArrowDown': { desc: 'down', funcDesc: 'Play all audio', buttonID: 'play-all'},
-    ' ': { desc: 'space', funcDesc: 'Play label', buttonID: 'play-label'},
+    'ctrl ArrowLeft' : { tooltip: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function() { waveform.moveStartForRegionIndex(0, -5)}},
+    'ctrl ArrowRight' : { tooltip: 'ctrl right', funcDesc: 'Move left boundary to the right', func: function() { waveform.moveStartForRegionIndex(0, 5)}},
+    'shift ArrowLeft' : { tooltip: 'shift left', funcDesc: 'Move right boundary to the left', func: function() { waveform.moveEndForRegionIndex(0, -5)}},
+    'shift ArrowRight' : { tooltip: 'shift right', funcDesc: 'Move right boundary to the right', func: function() { waveform.moveEndForRegionIndex(0, 5)}},
+    'ArrowLeft' : { tooltip: 'left', funcDesc: 'Play left context', buttonID: 'play-left'},
+    'ArrowRight': { tooltip: 'right', funcDesc: 'Play right context', buttonID: 'play-right'},
+    'ArrowDown': { tooltip: 'down', funcDesc: 'Play all audio', buttonID: 'play-all'},
+    ' ': { tooltip: 'space', funcDesc: 'Play label', buttonID: 'play-label'},
     'ctrl  ': { buttonID: 'play-label'},
     'shift  ': { buttonID: 'play-label'},
-    'o': { desc: 'o', buttonID: 'save-ok-next', funcDesc: "Save as ok and get next"},
-    's': { desc: 's', buttonID: 'save-skip-next', funcDesc: "Save as skip and get next"},
-    'b': { desc: 'b', buttonID: 'save-badsample-next', funcDesc: "Save as skip with label 'bad sample', and get next"},
-    'n': { desc: 'n', buttonID: 'next', funcDesc: "Get next segment"},
+    'o': { tooltip: 'o', buttonID: 'save-ok-next', funcDesc: "Save as ok and get next"},
+    's': { tooltip: 's', buttonID: 'save-skip-next', funcDesc: "Save as skip and get next"},
+    'b': { tooltip: 'b', buttonID: 'save-badsample-next', funcDesc: "Save as skip with label 'bad sample', and get next"},
+    'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment"},
 };
 
 window.addEventListener("keydown", function(evt) {
