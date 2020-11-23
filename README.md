@@ -91,3 +91,17 @@ Create a demo as soon as possible
 ## Future
 "fuzzy" greppyta för segmentgränserna (Jens: _jag insåg just att det inte finns någon speciell poäng med att man ska behöva slita med att få tag på just strecken/kanten... det går att ha mycket större aktiva ytor, tex vänster/höger hälft av mittensegmentet eller det vänstra/högra segmentet eller en kombination. eller två separata drag targets, kanske till och med ännu bättre._)
 
+
+---
+
+# Runnable example server
+
+You need
+1. Retrieve the file `audio.zip` provided by Hanna
+2. Retrieve the file `data.zip` provided by Hanna
+3. `git clone git@github.com:stts-se/segment_checker`
+4. `cd segment_checker`
+5. `unzip audio.zip`
+6. `unzip data.zip`
+7. `go run cmd/serv/main.go -serve cmd/serv/static/ -source data/source/  -annotation data/annotation`
+8. Visit `http://localhost:7371` using your browser (Firefox is recommended)
