@@ -323,15 +323,19 @@ func lock(uuid, user string) error {
 
 func unlock(uuid, user string) error {
 	lockMutex.Lock()
+	defer lockMutex.Unlock()
 	lockedBy, exists := lockMap[uuid]
 	if !exists {
+		//log.Warning("unlock: %v is not locked", uuid)
 		return fmt.Errorf("%v is not locked", uuid)
+		//return nil
 	}
 	if lockedBy != user {
+		//log.Warning("unlock: %v is not locked by user %s", uuid, user)
 		return fmt.Errorf("%v is not locked by user %s", uuid, user)
+		//return nil
 	}
 	delete(lockMap, uuid)
-	defer lockMutex.Unlock()
 	return nil
 }
 
