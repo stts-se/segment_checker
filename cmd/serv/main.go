@@ -70,6 +70,8 @@ func dbg(format string, args ...interface{}) {
 }
 
 func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
+	fileMutex.RLock()
+	defer fileMutex.RUnlock()
 	fName := path.Join(*cfg.SourceDataDir, sourceFile)
 	bts, err := ioutil.ReadFile(fName)
 	if err != nil {
@@ -279,8 +281,8 @@ func save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	saveMutex.Lock()
-	defer saveMutex.Unlock()
+	fileMutex.Lock()
+	defer fileMutex.Unlock()
 	file, err := os.Create(f)
 	if err != nil {
 		msg := fmt.Sprintf("Couldn't create file %s: %v", f, err)
@@ -392,6 +394,8 @@ func stats(w http.ResponseWriter, r *http.Request) {
 }
 
 func getNextCheckableSegment(currID string) (string, error) {
+	fileMutex.RLock()
+	defer fileMutex.RUnlock()
 	files, err := ioutil.ReadDir(*cfg.SourceDataDir)
 	if err != nil {
 		return "", fmt.Errorf("couldn't list files in folder %s : %v", *cfg.SourceDataDir, err)
@@ -542,7 +546,7 @@ type Config struct {
 	Debug             *bool   `json:"debug"`
 }
 
-var saveMutex = sync.Mutex{}          // for file saving
+var fileMutex = sync.RWMutex{}        // for file saving
 var lockMutex = sync.RWMutex{}        // for segment locking
 var lockMap = make(map[string]string) // segment uuid id -> user
 
