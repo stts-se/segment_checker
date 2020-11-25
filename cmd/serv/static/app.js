@@ -1,6 +1,6 @@
 'use strict';
 
-const baseURL = window.location.protocol + '//' + window.location.host;// + window.location.pathname.replace(/\/$/g,"");
+const baseURL = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/$/g,"");
 
 let enabled = false;
 let waveform;
@@ -99,7 +99,7 @@ function loadSegmentFromFile(sourceSegmentFile) {
             }
         })
         .catch(function (error) {
-            logMessage('server error: Request failed: ' + error);
+            logMessage('Request failed: ' + error);
             setEnabled(false);
         });
 
@@ -235,7 +235,7 @@ function loadStats() {
             }
         })
         .catch(function (error) {
-            logMessage('server error: Request failed: ' + error);
+            logMessage('Request failed: ' + error);
             setEnabled(false);
         });
 }
@@ -274,7 +274,7 @@ function releaseCurrentSegment() {
             }
         })
         .catch(function (error) {
-            logMessage('server error: Request failed: ' + error);
+            logMessage('Request failed: ' + error);
             setEnabled(false);
         });
 
@@ -308,7 +308,7 @@ function releaseAll() {
             }
         })
         .catch(function (error) {
-            logMessage('server error: Request failed: ' + error);
+            logMessage('Request failed: ' + error);
             setEnabled(false);
         });
 
@@ -327,6 +327,7 @@ function next() {
     url = url + "&context=1000";
     if (cachedSegment && cachedSegment !== null)
         url = url + "&currid=" + cachedSegment.uuid;
+    console.log("next URL", url);
 
     fetch(url,
         {
@@ -379,7 +380,8 @@ function next() {
             }
         })
         .catch(function (error) {
-            logMessage('server error: Request failed: ' + error);
+            console.log(error);
+            logMessage('Request failed: ' + error);
             setEnabled(false);
         });
 
@@ -457,7 +459,7 @@ function save(options) {
             }
         })
         .catch(function (error) {
-            logMessage('server error: Request failed: ' + error);
+            logMessage('Request failed: ' + error);
         });
 
 }
