@@ -206,7 +206,7 @@ func release(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	log.Info("load | input: %s %s", uuid, userName)
+	log.Info("release | input: %s %s", uuid, userName)
 
 	err := unlock(uuid, userName)
 	if err != nil {

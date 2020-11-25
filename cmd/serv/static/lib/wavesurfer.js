@@ -5119,7 +5119,8 @@ var WaveSurfer = /*#__PURE__*/function (_util$Observer) {
           _this13.arraybuffer = null;
         }
       }, function () {
-        return _this13.fireEvent('error', 'Error decoding audiobuffer');
+        var err = new Error('Error decoding audiobuffer');
+        return _this13.fireEvent('error', err.stack);
       });
     }
     /**
