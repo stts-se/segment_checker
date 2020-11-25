@@ -101,7 +101,7 @@ class Waveform {
 	});
 
 	this.wavesurfer.on("error", function (evt) {
-	    throw evt;
+	    //throw evt; // TODO
 	});
 
 	this.wavesurfer.on("ready", function () {

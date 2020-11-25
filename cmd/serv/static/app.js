@@ -241,6 +241,7 @@ function loadStats() {
 }
 
 function releaseCurrentSegment() {
+    console.log("releaseCurrentSegment called")
     if (cachedSegment === undefined || cachedSegment === null)
         return;
 
@@ -319,6 +320,7 @@ document.getElementById("clear_messages").addEventListener("click", function (ev
 
 
 function next() {
+    console.log("next called")
     releaseCurrentSegment();
 
     let url = baseURL + "/next/?username=" + document.getElementById("username").innerText;
