@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Segment checker</title>
+    <meta charset="utf-8">
+
+    <script>
+        const baseURL = window.location.protocol + '//' + window.location.host;// + window.location.pathname.replace(/\/$/g, "");
+
+        console.log("fetchtest");
+
+        console.log(fetchTest(1));
+        console.log(fetchTest(2));
+        console.log(fetchTest(3));
+
+        async function awaitFetchToJSON(url) {
+            const response = await fetch(url);
+            const json = await response.json();
+            return json;
+        }
+
+        function fetchTest(id) {
+            console.log("fetchTest called with id", id);
+
+            let url = baseURL + "/next/?username=hanna&context=1000";
+
+            awaitFetchToJSON(url,
+                {
+                    method: "GET",
+                    headers: {
+                        'Accept': 'application/json, text/plain, */*',
+                        'Content-Type': 'application/json'
+                    },
+                })
+                .then(json => {
+                    console.log("fetchTest json res for", id);
+                })
+                .catch(function (error) {
+                    console.log("fetchTest json error for", id, error);
+                });
+
+            return "fetchTest done " + id;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+    </script>
+
+</head>
+
+<body>FETCHTEST</body>
+
+
+</html>
