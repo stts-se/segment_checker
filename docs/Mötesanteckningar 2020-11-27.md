@@ -11,7 +11,7 @@ Action points:
 - [x] Ta bort knappar: Bad sample, SKIP, OK, next https://github.com/stts-se/segment_checker/issues/27
 - [x] Gör knappar för att flytta segmentgränser? https://github.com/stts-se/segment_checker/issues/28
 - [x] Funktion+shortcuts för att flytta segmentgränser långt https://github.com/stts-se/segment_checker/issues/29
-- [ ] Sätta kontextfönster i param (tillfälligt) https://github.com/stts-se/segment_checker/issues/30
+- [x] Sätta kontextfönster i param (tillfälligt) https://github.com/stts-se/segment_checker/issues/30
 - [ ] Visualisera progress? https://github.com/stts-se/segment_checker/issues/31
 - [ ] Nåt slags badge? https://github.com/stts-se/segment_checker/issues/32
 - [x] ~~Låsa appen för samtidiga användare? https://github.com/stts-se/segment_checker/issues/33~~
