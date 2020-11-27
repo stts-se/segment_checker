@@ -1,4 +1,4 @@
-Mötesanteckningar 2020-11-27
+# Mötesanteckningar 2020-11-27
 
 För det första scenariot:
 * Man behöver inte kunna dubbelkolla redan kollade segment
