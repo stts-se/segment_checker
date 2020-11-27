@@ -2,6 +2,9 @@
 
 const baseURL = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/$/g,"");
 
+const boundaryMovementShort = 5;
+const boundaryMovementLong = 100;
+
 let enabled = false;
 let waveform;
 let cachedSegment;
@@ -187,6 +190,40 @@ document.getElementById("release-all").addEventListener("click", function (evt) 
 document.getElementById("load_stats").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
         loadStats();
+});
+
+document.getElementById("move-left2left-short").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveStartForRegionIndex(0, -boundaryMovementShort);
+});
+document.getElementById("move-left2right-short").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveStartForRegionIndex(0, boundaryMovementShort);
+});
+document.getElementById("move-right2left-short").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveEndForRegionIndex(0, -boundaryMovementShort);
+});
+document.getElementById("move-right2right-short").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveEndForRegionIndex(0, boundaryMovementShort);
+});
+
+document.getElementById("move-left2left-long").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveStartForRegionIndex(0, -boundaryMovementLong);
+});
+document.getElementById("move-left2right-long").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveStartForRegionIndex(0, boundaryMovementLong);
+});
+document.getElementById("move-right2left-long").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveEndForRegionIndex(0, -boundaryMovementLong);
+});
+document.getElementById("move-right2right-long").addEventListener("click", function(evt) {
+    if (!evt.target.disabled)
+        waveform.moveEndForRegionIndex(0, boundaryMovementLong);
 });
 
 function loadStats() {
@@ -505,8 +542,14 @@ function loadKeyboardShortcuts() {
     Object.keys(shortcuts).forEach(function (key) {
         let id = shortcuts[key].buttonID;
         let tooltip = shortcuts[key].tooltip;
+        if (!tooltip)
+            tooltip = key.toLowerCase();
         if (id && tooltip) {
-            document.getElementById(id).title = "key: " + tooltip;
+            let ele = document.getElementById(id);
+            if (ele)
+                ele.title = "key: " + tooltip;
+            else
+                throw Error(`No element with id ${id}`);
         }
         if (tooltip && shortcuts[key].funcDesc) {
             let tr = document.createElement("tr");
@@ -521,25 +564,32 @@ function loadKeyboardShortcuts() {
     });
 }
 
-let shortcuts = {
-    'ctrl ArrowLeft': { tooltip: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function () { waveform.moveStartForRegionIndex(0, -5) } },
-    'ctrl ArrowRight': { tooltip: 'ctrl right', funcDesc: 'Move left boundary to the right', func: function () { waveform.moveStartForRegionIndex(0, 5) } },
-    'shift ArrowLeft': { tooltip: 'shift left', funcDesc: 'Move right boundary to the left', func: function () { waveform.moveEndForRegionIndex(0, -5) } },
-    'shift ArrowRight': { tooltip: 'shift right', funcDesc: 'Move right boundary to the right', func: function () { waveform.moveEndForRegionIndex(0, 5) } },
+const shortcuts = {
+    // 'ctrl ArrowLeft': { tooltip: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function () { waveform.moveStartForRegionIndex(0, -5) } },
+    // 'ctrl ArrowRight': { tooltip: 'ctrl right', funcDesc: 'Move left boundary to the right', func: function () { waveform.moveStartForRegionIndex(0, 5) } },
+    // 'shift ArrowLeft': { tooltip: 'shift left', funcDesc: 'Move right boundary to the left', func: function () { waveform.moveEndForRegionIndex(0, -5) } },
+    // 'shift ArrowRight': { tooltip: 'shift right', funcDesc: 'Move right boundary to the right', func: function () { waveform.moveEndForRegionIndex(0, 5) } },
+    'ctrl ArrowLeft': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-left2left-short'  },
+    'ctrl ArrowRight': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-left2right-short' },
+    'shift ArrowLeft': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-right2left-short' },
+    'shift ArrowRight': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-right2right-short' },
+    'ctrl Home': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long'  },
+    'ctrl End': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-left2right-long' },
+    'shift Home': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-right2left-long' },
+    'shift End': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-right2right-long' },
     'ArrowLeft': { tooltip: 'left', funcDesc: 'Play left context', buttonID: 'play-left' },
     'ArrowRight': { tooltip: 'right', funcDesc: 'Play right context', buttonID: 'play-right' },
     'ArrowDown': { tooltip: 'down', funcDesc: 'Play all audio', buttonID: 'play-all' },
     ' ': { tooltip: 'space', funcDesc: 'Play label', buttonID: 'play-label' },
-    'ctrl  ': { buttonID: 'play-label' },
-    'shift  ': { buttonID: 'play-label' },
+    'ctrl  ': { buttonID: 'play-label' }, // hidden from shortcut view
+    'shift  ': { buttonID: 'play-label' }, // hidden from shortcut view
     //'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment" },
-    'o': { tooltip: 'o', buttonID: 'save-ok-next', funcDesc: "Save as ok and get next" },
-    's': { tooltip: 's', buttonID: 'save-skip-next', funcDesc: "Save as skip and get next" },
-    'b': { tooltip: 'b', buttonID: 'save-badsample-next', funcDesc: "Save as skip with label 'bad sample', and get next" },
+    'o': { buttonID: 'save-ok-next', funcDesc: "Save as ok and get next" },
+    's': { buttonID: 'save-skip-next', funcDesc: "Save as skip and get next" },
+    'b': { buttonID: 'save-badsample-next', funcDesc: "Save as skip with label 'bad sample', and get next" },
 };
 
 window.addEventListener("keydown", function (evt) {
-    //console.log(evt.key, evt.keyCode, evt.ctrlKey, evt.altKey);
     let key = evt.key;
     if (evt.altKey)
         key = "alt " + key;
@@ -547,7 +597,8 @@ window.addEventListener("keydown", function (evt) {
         key = "ctrl " + key;
     if (evt.shiftKey)
         key = "shift " + key;
-    if (shortcuts[key]) {
+        console.log(evt.key, evt.keyCode, evt.ctrlKey, evt.altKey, "=>", key);
+        if (shortcuts[key]) {
         let shortcut = shortcuts[key];
         if ((!shortcut.alt && !evt.altKey) || (!shortcut.ctrl && !evt.ctrlKey) || (!shortcut.shift && !evt.shiftKey)
             (shortcut.ctrl && evt.ctrlKey) || (shortcut.alt && evt.altKey) || (shortcut.shift && evt.shiftKey)) {
