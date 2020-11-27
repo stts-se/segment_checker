@@ -196,37 +196,69 @@ document.getElementById("load_stats").addEventListener("click", function (evt) {
 });
 
 document.getElementById("move-left2left-short").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, -boundaryMovementShort);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 document.getElementById("move-left2right-short").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, boundaryMovementShort);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 document.getElementById("move-right2left-short").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, -boundaryMovementShort);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 document.getElementById("move-right2right-short").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, boundaryMovementShort);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 
 document.getElementById("move-left2left-long").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, -boundaryMovementLong);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 document.getElementById("move-left2right-long").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, boundaryMovementLong);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 document.getElementById("move-right2left-long").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, -boundaryMovementLong);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 document.getElementById("move-right2right-long").addEventListener("click", function(evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, boundaryMovementLong);
+        evt.preventDefault();
+        evt.stopPropagation();
+        return false;
+    }
 });
 
 function loadStats() {
@@ -575,17 +607,14 @@ function loadKeyboardShortcuts() {
 
 const shortcuts = {
     // 'ctrl ArrowLeft': { tooltip: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function () { waveform.moveStartForRegionIndex(0, -5) } },
-    // 'ctrl ArrowRight': { tooltip: 'ctrl right', funcDesc: 'Move left boundary to the right', func: function () { waveform.moveStartForRegionIndex(0, 5) } },
-    // 'shift ArrowLeft': { tooltip: 'shift left', funcDesc: 'Move right boundary to the left', func: function () { waveform.moveEndForRegionIndex(0, -5) } },
-    // 'shift ArrowRight': { tooltip: 'shift right', funcDesc: 'Move right boundary to the right', func: function () { waveform.moveEndForRegionIndex(0, 5) } },
     'ctrl ArrowLeft': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-left2left-short'  },
     'ctrl ArrowRight': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-left2right-short' },
     'shift ArrowLeft': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-right2left-short' },
     'shift ArrowRight': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-right2right-short' },
-    'ctrl Home': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long'  },
-    'ctrl End': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-left2right-long' },
-    'shift Home': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-right2left-long' },
-    'shift End': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-right2right-long' },
+    'ctrl ArrowUp': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long'  },
+    'ctrl ArrowDown': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-left2right-long' },
+    'shift ArrowUp': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-right2left-long' },
+    'shift ArrowDown': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-right2right-long' },
     'ArrowLeft': { tooltip: 'left', funcDesc: 'Play left context', buttonID: 'play-left' },
     'ArrowRight': { tooltip: 'right', funcDesc: 'Play right context', buttonID: 'play-right' },
     'ArrowDown': { tooltip: 'down', funcDesc: 'Play all audio', buttonID: 'play-all' },
