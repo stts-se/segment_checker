@@ -532,7 +532,7 @@ let shortcuts = {
     ' ': { tooltip: 'space', funcDesc: 'Play label', buttonID: 'play-label' },
     'ctrl  ': { buttonID: 'play-label' },
     'shift  ': { buttonID: 'play-label' },
-    'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment" },
+    //'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment" },
     'o': { tooltip: 'o', buttonID: 'save-ok-next', funcDesc: "Save as ok and get next" },
     's': { tooltip: 's', buttonID: 'save-skip-next', funcDesc: "Save as skip and get next" },
     'b': { tooltip: 'b', buttonID: 'save-badsample-next', funcDesc: "Save as skip with label 'bad sample', and get next" },
