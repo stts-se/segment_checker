@@ -14,6 +14,7 @@ Action points:
 * Sätta kontextfönster i param (tillfälligt) https://github.com/stts-se/segment_checker/issues/30
 * Visualisera progress? https://github.com/stts-se/segment_checker/issues/31
 * Nåt slags badge? https://github.com/stts-se/segment_checker/issues/32
+* Låsa appen för samtidiga användare? https://github.com/stts-se/segment_checker/issues/33
 
 Funderingar:
 * Behöver vi ändå implementera en enkel dubbelkoll för att kunna testa att verktyget funkar som det ska? (utan möjlighet att spara) https://github.com/stts-se/segment_checker/issues/23
