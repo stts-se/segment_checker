@@ -369,6 +369,9 @@ func stats(w http.ResponseWriter, r *http.Request) {
 	for label, count := range checkedStats {
 		res[label] = count
 	}
+	for _, user := range lockMap {
+		res["locked by:"+user]++
+	}
 	resJSON, err := json.Marshal(res)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal result : %v", err)
@@ -490,18 +493,9 @@ func checkedSegmentStats() (int, map[string]int, error) {
 			return n, res, fmt.Errorf("couldn't unmarshal json : %v", err)
 		}
 		n++
-		if _, ok := res["status:"+segment.Status.Name]; !ok {
-			res["status:"+segment.Status.Name] = 0
-		}
 		res["status:"+segment.Status.Name]++
-		if _, ok := res["editor:"+segment.Status.Source]; !ok {
-			res["editor:"+segment.Status.Source] = 0
-		}
-		res["editor:"+segment.Status.Source]++
+		res["checked by:"+segment.Status.Source]++
 		for _, label := range segment.Labels {
-			if _, ok := res["label:"+label]; !ok {
-				res["label:"+label] = 0
-			}
 			res["label:"+label]++
 		}
 	}
