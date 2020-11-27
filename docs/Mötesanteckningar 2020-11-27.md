@@ -7,13 +7,15 @@ För det första scenariot:
 * Vi kan få lite testdata för e-vokaler
 * 50ms - 1s långa segment
 
-Action points:
+Action points från mötet:
 - [x] Ta bort knappar: Bad sample, SKIP, OK, next https://github.com/stts-se/segment_checker/issues/27
 - [x] Gör knappar för att flytta segmentgränser? https://github.com/stts-se/segment_checker/issues/28
 - [x] Funktion+shortcuts för att flytta segmentgränser långt https://github.com/stts-se/segment_checker/issues/29
 - [x] Sätta kontextfönster i param (tillfälligt) https://github.com/stts-se/segment_checker/issues/30
 - [ ] Visualisera progress? https://github.com/stts-se/segment_checker/issues/31
 - [ ] Nåt slags badge? https://github.com/stts-se/segment_checker/issues/32
+
+Annat som vi tror behövs:
 - [ ] Implementera en enkel dubbelkoll för att kunna testa att verktyget funkar som det ska? (utan möjlighet att spara) https://github.com/stts-se/segment_checker/issues/23
 - [ ] Läsa in käll- och annotationdata i minnet istf att läsa från disk https://github.com/stts-se/segment_checker/issues/26
 
