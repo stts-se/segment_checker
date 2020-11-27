@@ -19,3 +19,6 @@ Action points:
 Funderingar:
 * Behöver vi ändå implementera en enkel dubbelkoll för att kunna testa att verktyget funkar som det ska? (utan möjlighet att spara) https://github.com/stts-se/segment_checker/issues/23
 * Läsa in käll- och annotationdata i minnet istf att läsa från disk https://github.com/stts-se/segment_checker/issues/26
+
+Issues för MVP: https://github.com/stts-se/segment_checker/labels/MVP
+
