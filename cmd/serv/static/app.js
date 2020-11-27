@@ -635,7 +635,7 @@ window.addEventListener("keydown", function (evt) {
         key = "ctrl " + key;
     if (evt.shiftKey)
         key = "shift " + key;
-        console.log(evt.key, evt.keyCode, evt.ctrlKey, evt.altKey, "=>", key);
+        //console.log(evt.key, evt.keyCode, evt.ctrlKey, evt.altKey, "=>", key);
         if (shortcuts[key]) {
         let shortcut = shortcuts[key];
         if ((!shortcut.alt && !evt.altKey) || (!shortcut.ctrl && !evt.ctrlKey) || (!shortcut.shift && !evt.shiftKey)
