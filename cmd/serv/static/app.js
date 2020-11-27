@@ -5,6 +5,9 @@ const baseURL = window.location.protocol + '//' + window.location.host + window.
 const boundaryMovementShort = 5;
 const boundaryMovementLong = 100;
 
+const contextParamEnabled = true;
+let context = 1000;
+
 let enabled = false;
 let waveform;
 let cachedSegment;
@@ -51,7 +54,7 @@ function setEnabled(enable) {
 }
 
 function loadSegmentFromFile(sourceSegmentFile) {
-    let url = baseURL + "/load?sourcefile=" + sourceSegmentFile + "&context=1000&&username=" + document.getElementById("username").innerText;
+    let url = baseURL + `/load?sourcefile=${sourceSegmentFile}&context=${context}&username=` + document.getElementById("username").innerText;
 
     fetch(url,
         {
@@ -361,7 +364,7 @@ function next() {
     releaseCurrentSegment();
 
     let url = baseURL + "/next/?username=" + document.getElementById("username").innerText;
-    url = url + "&context=1000";
+    url = url + "&context=" + context;
     if (cachedSegment && cachedSegment !== null)
         url = url + "&currid=" + cachedSegment.uuid;
     console.log("next URL", url);
@@ -513,6 +516,12 @@ window.addEventListener("load", function () {
         alert(msg);
         logMessage(msg);
         return;
+    }
+    if (contextParamEnabled) {
+        if (params.get('context'))
+            context = params.get('context');
+        document.getElementById("context").innerText = `${context} ms`;
+        document.getElementById("context-view").classList.remove("hidden");
     }
 
     console.log("main window loaded");
