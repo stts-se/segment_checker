@@ -1,6 +1,6 @@
 'use strict';
 
-const baseURL = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/$/g,"");
+const baseURL = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/$/g, "");
 
 const boundaryMovementShort = 5;
 const boundaryMovementLong = 100;
@@ -195,7 +195,7 @@ document.getElementById("load_stats").addEventListener("click", function (evt) {
         loadStats();
 });
 
-document.getElementById("move-left2left-short").addEventListener("click", function(evt) {
+document.getElementById("move-left2left-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, -boundaryMovementShort);
         evt.preventDefault();
@@ -203,7 +203,7 @@ document.getElementById("move-left2left-short").addEventListener("click", functi
         return false;
     }
 });
-document.getElementById("move-left2right-short").addEventListener("click", function(evt) {
+document.getElementById("move-left2right-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, boundaryMovementShort);
         evt.preventDefault();
@@ -211,7 +211,7 @@ document.getElementById("move-left2right-short").addEventListener("click", funct
         return false;
     }
 });
-document.getElementById("move-right2left-short").addEventListener("click", function(evt) {
+document.getElementById("move-right2left-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, -boundaryMovementShort);
         evt.preventDefault();
@@ -219,7 +219,7 @@ document.getElementById("move-right2left-short").addEventListener("click", funct
         return false;
     }
 });
-document.getElementById("move-right2right-short").addEventListener("click", function(evt) {
+document.getElementById("move-right2right-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, boundaryMovementShort);
         evt.preventDefault();
@@ -228,7 +228,7 @@ document.getElementById("move-right2right-short").addEventListener("click", func
     }
 });
 
-document.getElementById("move-left2left-long").addEventListener("click", function(evt) {
+document.getElementById("move-left2left-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, -boundaryMovementLong);
         evt.preventDefault();
@@ -236,7 +236,7 @@ document.getElementById("move-left2left-long").addEventListener("click", functio
         return false;
     }
 });
-document.getElementById("move-left2right-long").addEventListener("click", function(evt) {
+document.getElementById("move-left2right-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveStartForRegionIndex(0, boundaryMovementLong);
         evt.preventDefault();
@@ -244,7 +244,7 @@ document.getElementById("move-left2right-long").addEventListener("click", functi
         return false;
     }
 });
-document.getElementById("move-right2left-long").addEventListener("click", function(evt) {
+document.getElementById("move-right2left-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, -boundaryMovementLong);
         evt.preventDefault();
@@ -252,7 +252,7 @@ document.getElementById("move-right2left-long").addEventListener("click", functi
         return false;
     }
 });
-document.getElementById("move-right2right-long").addEventListener("click", function(evt) {
+document.getElementById("move-right2right-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.moveEndForRegionIndex(0, boundaryMovementLong);
         evt.preventDefault();
@@ -607,11 +607,11 @@ function loadKeyboardShortcuts() {
 
 const shortcuts = {
     // 'ctrl ArrowLeft': { tooltip: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function () { waveform.moveStartForRegionIndex(0, -5) } },
-    'ctrl ArrowLeft': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-left2left-short'  },
+    'ctrl ArrowLeft': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-left2left-short' },
     'ctrl ArrowRight': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-left2right-short' },
     'shift ArrowLeft': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-right2left-short' },
     'shift ArrowRight': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-right2right-short' },
-    'ctrl ArrowUp': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long'  },
+    'ctrl ArrowUp': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long' },
     'ctrl ArrowDown': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-left2right-long' },
     'shift ArrowUp': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-right2left-long' },
     'shift ArrowDown': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-right2right-long' },
@@ -635,8 +635,8 @@ window.addEventListener("keydown", function (evt) {
         key = "ctrl " + key;
     if (evt.shiftKey)
         key = "shift " + key;
-        //console.log(evt.key, evt.keyCode, evt.ctrlKey, evt.altKey, "=>", key);
-        if (shortcuts[key]) {
+    //console.log(evt.key, evt.keyCode, evt.ctrlKey, evt.altKey, "=>", key);
+    if (shortcuts[key]) {
         let shortcut = shortcuts[key];
         if ((!shortcut.alt && !evt.altKey) || (!shortcut.ctrl && !evt.ctrlKey) || (!shortcut.shift && !evt.shiftKey)
             (shortcut.ctrl && evt.ctrlKey) || (shortcut.alt && evt.altKey) || (shortcut.shift && evt.shiftKey)) {
