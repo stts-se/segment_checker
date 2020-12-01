@@ -493,8 +493,12 @@ func checkedSegmentStats() (int, map[string]int, error) {
 			return n, res, fmt.Errorf("couldn't unmarshal json : %v", err)
 		}
 		n++
-		res["status:"+segment.Status.Name]++
-		res["checked by:"+segment.Status.Source]++
+		status := segment.CurrentStatus
+
+		res["status:"+status.Name]++
+		if len(status.Source) > 0 {
+			res["checked by:"+status.Source]++
+		}
 		for _, label := range segment.Labels {
 			res["label:"+label]++
 		}

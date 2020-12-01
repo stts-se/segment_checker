@@ -47,7 +47,15 @@ type Status struct {
 
 type AnnotationPayload struct {
 	SegmentPayload
-	Labels  []string `json:"labels"`
-	Status  Status   `json:"status"`
-	Comment string   `json:"comment"`
+	Labels        []string `json:"labels"`
+	CurrentStatus Status   `json:"current_status"`
+	StatusHistory []Status `json:"status_history"`
+	Comment       string   `json:"comment"`
+}
+
+func (ap *AnnotationPayload) SetCurrentStatus(s Status) {
+	if ap.CurrentStatus.Name != "" || ap.CurrentStatus.Source != "" {
+		ap.StatusHistory = append(ap.StatusHistory, ap.CurrentStatus)
+	}
+	ap.CurrentStatus = s
 }
