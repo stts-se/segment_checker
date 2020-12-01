@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/stts-se/segment_checker/dbapi"
 	"github.com/stts-se/segment_checker/log"
 	"github.com/stts-se/segment_checker/modules"
 	"github.com/stts-se/segment_checker/protocol"
@@ -342,7 +343,7 @@ func unlock(uuid, user string) error {
 }
 
 func stats(w http.ResponseWriter, r *http.Request) {
-	allSegs, err := listAllSegments()
+	allSegs, err := db.ListAllSegments()
 	if err != nil {
 		msg := fmt.Sprintf("Couldn't list segments: %v", err)
 		jsonError(w, msg, msg, http.StatusInternalServerError)
@@ -437,32 +438,9 @@ func getNextCheckableSegment(currID string) (string, error) {
 	return "", fmt.Errorf("couldn't find any segments to check")
 }
 
-func listAllSegments() ([]protocol.SegmentPayload, error) {
-	res := []protocol.SegmentPayload{}
-	files, err := ioutil.ReadDir(*cfg.SourceDataDir)
-	if err != nil {
-		return res, fmt.Errorf("couldn't list files in folder %s : %v", *cfg.SourceDataDir, err)
-	}
-	for _, f := range files {
-		if strings.HasSuffix(f.Name(), ".json") {
-			bts, err := ioutil.ReadFile(path.Join(*cfg.SourceDataDir, f.Name()))
-			if err != nil {
-				return res, fmt.Errorf("couldn't read file %s : %v", f, err)
-			}
-			var segment protocol.SegmentPayload
-			err = json.Unmarshal(bts, &segment)
-			if err != nil {
-				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
-			}
-			res = append(res, segment)
-		}
-	}
-	return res, nil
-}
-
 func listCheckableSegments() ([]protocol.SegmentPayload, error) {
 	res := []protocol.SegmentPayload{}
-	all, err := listAllSegments()
+	all, err := db.ListAllSegments()
 	for _, seg := range all {
 		f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", seg.UUID))
 		_, err := os.Stat(f)
@@ -475,7 +453,7 @@ func listCheckableSegments() ([]protocol.SegmentPayload, error) {
 
 func checkedSegmentStats() (int, map[string]int, error) {
 	res := map[string]int{}
-	all, err := listAllSegments()
+	all, err := db.ListAllSegments()
 	n := 0
 	for _, seg := range all {
 		f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", seg.UUID))
@@ -517,22 +495,8 @@ func generateDoc(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "</body></html>")
 }
 
-func loadData(dataDir string) error {
-	if dataDir == "" {
-		return fmt.Errorf("data dir not provided")
-	}
-	info, err := os.Stat(dataDir)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("provided data dir does not exist: %s", dataDir)
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("provided data dir is not a directory: %s", dataDir)
-	}
-	// todo: load into memory or read from disk?
-	return nil
-}
-
 var cfg = &Config{}
+var db *dbapi.DBAPI
 
 // Config for server
 type Config struct {
@@ -585,7 +549,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = loadData(*cfg.SourceDataDir)
+	db = &dbapi.DBAPI{SourceDataDir: *cfg.SourceDataDir, AnnotationDataDir: *cfg.AnnotationDataDir}
+	err = db.LoadData()
 	if err != nil {
 		log.Fatal("Couldn't load data: %v", err)
 	}
