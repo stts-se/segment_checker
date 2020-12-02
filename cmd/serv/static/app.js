@@ -5,8 +5,9 @@ const baseURL = window.location.protocol + '//' + window.location.host + window.
 const boundaryMovementShort = 5;
 const boundaryMovementLong = 100;
 
+// context
 const contextParamEnabled = true;
-let context = 1000;
+let context;
 
 let enabled = false;
 let waveform;
@@ -33,28 +34,35 @@ function setEnabled(enable) {
         document.getElementById("play-left"),
         document.getElementById("reset"),
         document.getElementById("quit"),
-        //document.getElementById("next"),
+        document.getElementById("next"),
+        document.getElementById("prev"),
     ];
     if (enable) {
         for (let i = 0; i < buttons.length; i++) {
             let btn = buttons[i];
-            btn.classList.remove("disabled");
-            btn.removeAttribute("disabled");
-            btn.disabled = false;
+	    if (btn) {
+		btn.classList.remove("disabled");
+		btn.removeAttribute("disabled");
+		btn.disabled = false;
+	    }
         }
         document.getElementById("comment").removeAttribute("readonly");
     } else {
         for (let i = 0; i < buttons.length; i++) {
             let btn = buttons[i];
-            btn.classList.add("disabled");
-            btn.disabled = true;
+	    if (btn) {
+		btn.classList.add("disabled");
+		btn.disabled = true;
+	    }
         }
         document.getElementById("comment").setAttribute("readonly", "readonly");
     }
 }
 
 function loadSegmentFromFile(sourceSegmentFile) {
-    let url = baseURL + `/load?sourcefile=${sourceSegmentFile}&context=${context}&username=` + document.getElementById("username").innerText;
+    let url = baseURL + `/load?sourcefile=${sourceSegmentFile}&username=` + document.getElementById("username").innerText;
+    if (context)
+	url += "&context=${context}"
 
     fetch(url,
         {
@@ -111,8 +119,23 @@ function loadSegmentFromFile(sourceSegmentFile) {
 
 }
 
-function loadAudioBlob(url, chunk) {
-    waveform.loadAudioBlob(url, [chunk]);
+function autoplay() {
+    console.log("autoplay called");
+    if (document.getElementById("autoplay-none").checked)
+	return;
+    if (document.getElementById("autoplay-right").checked)
+	document.getElementById("play-right").click();
+    if (document.getElementById("autoplay-left").checked)
+	document.getElementById("play-left").click();
+    if (document.getElementById("autoplay-all").checked)
+	document.getElementById("play-all").click();
+    if (document.getElementById("autoplay-label").checked)
+	document.getElementById("play-label").click();
+}
+
+async function loadAudioBlob(url, chunk) {
+    await waveform.loadAudioBlob(url, [chunk]);
+    //autoplay();
 }
 
 function loadAudioURL(url, chunk) {
@@ -150,20 +173,30 @@ document.getElementById("save-ok").addEventListener("click", function (evt) {
 });
 document.getElementById("save-badsample-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "skip", label: "bad sample", callback: next });
+        save({ status: "skip", label: "bad sample", callback: next(1, ["unchecked"]) });
 });
 document.getElementById("save-skip-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "skip", callback: next });
+        save({ status: "skip", callback: next(1, ["unchecked"]) });
 });
 document.getElementById("save-ok-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "ok", callback: next });
+        save({ status: "ok", callback: next(1, ["unchecked"]) });
 });
-document.getElementById("next").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
-        next();
-});
+
+if (document.getElementById("next")) {
+    document.getElementById("next").addEventListener("click", function (evt) {
+	if (!evt.target.disabled)
+            next(1, ["unchecked"]);
+    });
+}
+if (document.getElementById("prev")) {
+    document.getElementById("prev").addEventListener("click", function (evt) {
+	if (!evt.target.disabled)
+            next(-1);
+    });
+}
+
 document.getElementById("reset").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.updateRegion(0, cachedSegment.chunk.start, cachedSegment.chunk.end);
@@ -278,7 +311,7 @@ function loadStats() {
 
             if (data.error) {
                 logMessage('server error: Got error from GET to ' + url + ": " + data.error);
-                setEnabled(false);
+                //setEnabled(false);
                 return;
             } else if (data.info) {
                 logMessage('server: ' + data.info);
@@ -308,7 +341,7 @@ function loadStats() {
         })
         .catch(function (error) {
             logMessage('Request failed: ' + error);
-            setEnabled(false);
+            //setEnabled(false);
         });
 }
 
@@ -391,23 +424,31 @@ document.getElementById("clear_messages").addEventListener("click", function (ev
 });
 
 
-function next() {
+function next(stepSize, status) {
     console.log("next called")
     releaseCurrentSegment();
 
-    let url = baseURL + "/next/?username=" + document.getElementById("username").innerText;
-    url = url + "&context=" + context;
+    let url = baseURL + "/next/"; // ${stepSize}/?username=${document.getElementById("username").innerText}`;
+    let payload = {
+	step_size: stepSize,
+	user_name: document.getElementById("username").innerText,
+    }
+    if (context)
+	payload.context = context;
     if (cachedSegment && cachedSegment !== null)
-        url = url + "&currid=" + cachedSegment.uuid;
-    console.log("next URL", url);
+        payload.curr_id = cachedSegment.uuid;
+    if (status)
+        payload.request_status = status;
+    console.log("next URL", url, payload);
 
     fetch(url,
         {
-            method: "GET",
+            method: "POST",
             headers: {
                 'Accept': 'application/json, text/plain, */*',
                 'Content-Type': 'application/json'
             },
+	    body: JSON.stringify(payload),
         })
         .then(function (res) { return res.json(); })
         .then(function (data) {
@@ -492,7 +533,8 @@ function save(options) {
             start: region.start + cachedSegment.offset,
             end: region.end + cachedSegment.offset,
         },
-        status: status,
+        current_status: status,
+        status_history: [],
         labels: labels,
         comment: document.getElementById("comment").value,
     }
@@ -550,10 +592,11 @@ window.addEventListener("load", function () {
         return;
     }
     if (contextParamEnabled) {
-        if (params.get('context'))
+        if (params.get('context')) {
             context = params.get('context');
-        document.getElementById("context").innerText = `${context} ms`;
-        document.getElementById("context-view").classList.remove("hidden");
+            document.getElementById("context").innerText = `${context} ms`;
+            document.getElementById("context-view").classList.remove("hidden");
+	}
     }
 
     console.log("main window loaded");
@@ -571,7 +614,7 @@ window.addEventListener("load", function () {
 
     waveform = new Waveform(options);
 
-    next();
+    next(1, ["unchecked"]);
 
     //loadSegmentFromFile('tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260_00021.json');
 

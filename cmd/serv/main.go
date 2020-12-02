@@ -9,8 +9,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -70,9 +68,16 @@ func dbg(format string, args ...interface{}) {
 	}
 }
 
-func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
-	fileMutex.RLock()
-	defer fileMutex.RUnlock()
+var contextMap = map[string]int64{
+	"e":       200,
+	"silence": 1000,
+}
+
+const fallbackContext = int64(1000)
+
+func load0(sourceFile, userName string, explicitContext int64, w http.ResponseWriter) {
+	db.FileMutex.RLock()
+	defer db.FileMutex.RUnlock()
 	fName := path.Join(*cfg.SourceDataDir, sourceFile)
 	bts, err := ioutil.ReadFile(fName)
 	if err != nil {
@@ -87,12 +92,21 @@ func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
 		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
-	err = lock(segment.UUID, userName)
+	err = db.Lock(segment.UUID, userName)
 	if err != nil {
 		msg := fmt.Sprintf("Couldn't lock segment: %v", err)
-		jsonError(w, msg, msg, http.StatusBadRequest)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
+	var context int64
+	if explicitContext > 0 {
+		context = explicitContext
+	} else if ctx, ok := contextMap[segment.SegmentType]; ok {
+		context = ctx
+	} else {
+		context = fallbackContext
+	}
+
 	request := protocol.SplitRequestPayload{
 		URL:          segment.URL,
 		Chunk:        segment.Chunk,
@@ -100,6 +114,7 @@ func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
 		LeftContext:  context,
 		RightContext: context,
 	}
+	fmt.Printf("DEBUG %#v\n", request)
 	res, err := chunkExtractor.ProcessURLWithContext(request, "")
 	if err != nil {
 		msg := fmt.Sprintf("chunk extractor failed : %v", err)
@@ -113,7 +128,7 @@ func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
 	resJSON, err := json.Marshal(res)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal result : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
+		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
 
 	}
@@ -124,7 +139,7 @@ func load0(sourceFile, userName string, context int64, w http.ResponseWriter) {
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal msg : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
+		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
 
 	}
@@ -148,7 +163,7 @@ func load(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	context := int64(1000)
+	context := int64(-1)
 	if contextS != "" {
 		context, err = strconv.ParseInt(contextS, 10, 64)
 		if err != nil {
@@ -163,35 +178,44 @@ func load(w http.ResponseWriter, r *http.Request) {
 
 func next(w http.ResponseWriter, r *http.Request) {
 	var err error
-	userName := getParam("username", r)
-	currID := getParam("currid", r)
-	contextS := getParam("context", r)
-	if userName == "" {
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		msg := fmt.Sprintf("failed to read request body : %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	log.Info("next | input: %s", string(body))
+
+	query := protocol.QueryPayload{}
+	err = json.Unmarshal(body, &query)
+	if err != nil {
+		msg := fmt.Sprintf("failed to unmarshal incoming JSON : %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+
+	if query.UserName == "" {
 		msg := fmt.Sprintf("User name not provided")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	if currID == "undefined" {
-		currID = ""
-	}
-	context := int64(1000)
-	if contextS != "" {
-		context, err = strconv.ParseInt(contextS, 10, 64)
-		if err != nil {
-			msg := fmt.Sprintf("Couldn't parse int %s", contextS)
-			jsonError(w, msg, msg, http.StatusBadRequest)
-			return
-		}
-	}
-
-	log.Info("next | input: %s %s %v", userName, currID, contextS)
-	sourceFile, err := getNextCheckableSegment(currID)
-	if err != nil {
-		msg := fmt.Sprintf("%v", err)
+	if query.StepSize == 0 {
+		msg := fmt.Sprintf("Step size not provided")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	load0(sourceFile, userName, context, w)
+	if query.CurrID == "undefined" {
+		query.CurrID = ""
+	}
+	sourceFile, err := db.GetNextCheckableSegment(query)
+	if err != nil {
+		msg := fmt.Sprintf("%v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	load0(sourceFile, query.UserName, query.Context, w)
 }
 
 func release(w http.ResponseWriter, r *http.Request) {
@@ -209,7 +233,7 @@ func release(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info("release | input: %s %s", uuid, userName)
 
-	err := unlock(uuid, userName)
+	err := db.Unlock(uuid, userName)
 	if err != nil {
 		msg := fmt.Sprintf("Couldn't unlock segment: %v", err)
 		jsonError(w, msg, msg, http.StatusBadRequest)
@@ -220,7 +244,7 @@ func release(w http.ResponseWriter, r *http.Request) {
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal msg : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
+		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -236,12 +260,11 @@ func releaseAll(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info("load | input: %s", userName)
 
-	n := 0
-	for k, v := range lockMap {
-		if v == userName {
-			unlock(k, v)
-			n++
-		}
+	n, err := db.UnlockAll(userName)
+	if err != nil {
+		msg := fmt.Sprintf("failed to unlock : %v", err)
+		httpError(w, msg, msg, http.StatusInternalServerError)
+		return
 	}
 
 	msg := Message{Info: fmt.Sprintf("Unlocked %d segments for user %s", n, userName)}
@@ -249,7 +272,7 @@ func releaseAll(w http.ResponseWriter, r *http.Request) {
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal msg : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
+		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -274,24 +297,13 @@ func save(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", annotation.UUID))
-	writeJSON, err := json.MarshalIndent(annotation, " ", " ")
-	if err != nil {
-		msg := fmt.Sprintf("Marshal failed: %v", err)
-		jsonError(w, msg, msg, http.StatusInternalServerError)
-		return
-	}
 
-	fileMutex.Lock()
-	defer fileMutex.Unlock()
-	file, err := os.Create(f)
+	err = db.Save(annotation)
 	if err != nil {
-		msg := fmt.Sprintf("Couldn't create file %s: %v", f, err)
+		msg := fmt.Sprintf("failed to save annotation : %v", err)
 		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
-	file.Write(writeJSON)
 
 	msg := Message{Info: fmt.Sprintf("Saved annotation for segment with id %s", annotation.UUID)}
 
@@ -306,79 +318,18 @@ func save(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", string(msgJSON))
 }
 
-func locked(uuid string) bool {
-	lockMutex.RLock()
-	defer lockMutex.RUnlock()
-	_, res := lockMap[uuid]
-	return res
-}
-
-func lock(uuid, user string) error {
-	lockMutex.Lock()
-	defer lockMutex.Unlock()
-	lockedBy, exists := lockMap[uuid]
-	if exists {
-		return fmt.Errorf("%v is already locked by user %s", uuid, lockedBy)
-	}
-	lockMap[uuid] = user
-	return nil
-}
-
-func unlock(uuid, user string) error {
-	lockMutex.Lock()
-	defer lockMutex.Unlock()
-	lockedBy, exists := lockMap[uuid]
-	if !exists {
-		//log.Warning("unlock: %v is not locked", uuid)
-		return fmt.Errorf("%v is not locked", uuid)
-		//return nil
-	}
-	if lockedBy != user {
-		//log.Warning("unlock: %v is not locked by user %s", uuid, user)
-		return fmt.Errorf("%v is not locked by user %s", uuid, user)
-		//return nil
-	}
-	delete(lockMap, uuid)
-	return nil
-}
-
 func stats(w http.ResponseWriter, r *http.Request) {
-	allSegs, err := db.ListAllSegments()
+	res, err := db.Stats()
 	if err != nil {
-		msg := fmt.Sprintf("Couldn't list segments: %v", err)
-		jsonError(w, msg, msg, http.StatusInternalServerError)
+		msg := fmt.Sprintf("failed to get stats from db : %v", err)
+		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
-	}
-	checkableSegs, err := listCheckableSegments()
-	if err != nil {
-		msg := fmt.Sprintf("Couldn't list checkable segments: %v", err)
-		jsonError(w, msg, msg, http.StatusInternalServerError)
-		return
-	}
-	nChecked, checkedStats, err := checkedSegmentStats()
-	if err != nil {
-		msg := fmt.Sprintf("Couldn't list checked segments: %v", err)
-		jsonError(w, msg, msg, http.StatusInternalServerError)
-		return
-	}
-	res := map[string]int{
-		"total":     len(allSegs),
-		"checked":   nChecked,
-		"checkable": len(checkableSegs),
-		"locked":    len(lockMap),
-	}
-	for label, count := range checkedStats {
-		res[label] = count
-	}
-	for _, user := range lockMap {
-		res["locked by:"+user]++
 	}
 	resJSON, err := json.Marshal(res)
 	if err != nil {
 		msg := fmt.Sprintf("failed to marshal result : %v", err)
-		httpError(w, msg, msg, http.StatusBadRequest)
+		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
-
 	}
 	msg := Message{
 		MessageType: "stats",
@@ -395,93 +346,6 @@ func stats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "%s\n", string(msgJSON))
 
-}
-
-func getNextCheckableSegment(currID string) (string, error) {
-	fileMutex.RLock()
-	defer fileMutex.RUnlock()
-	files, err := ioutil.ReadDir(*cfg.SourceDataDir)
-	if err != nil {
-		return "", fmt.Errorf("couldn't list files in folder %s : %v", *cfg.SourceDataDir, err)
-	}
-	seenCurrID := false
-	fallbackFile := ""
-	for _, sourceFile := range files {
-		if strings.HasSuffix(sourceFile.Name(), ".json") {
-			bts, err := ioutil.ReadFile(path.Join(*cfg.SourceDataDir, sourceFile.Name()))
-			if err != nil {
-				return "", fmt.Errorf("couldn't read file %s : %v", sourceFile.Name(), err)
-			}
-			var segment protocol.SegmentPayload
-			err = json.Unmarshal(bts, &segment)
-			if err != nil {
-				return "", fmt.Errorf("couldn't unmarshal json : %v", err)
-			}
-			if segment.UUID == currID {
-				seenCurrID = true
-				continue
-			}
-			annotationFile := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
-			_, err = os.Stat(annotationFile)
-			if os.IsNotExist(err) && !locked(segment.UUID) {
-				if currID == "" || seenCurrID {
-					return sourceFile.Name(), nil
-				}
-				fallbackFile = sourceFile.Name()
-			}
-
-		}
-	}
-	if fallbackFile != "" {
-		return fallbackFile, nil
-	}
-	return "", fmt.Errorf("couldn't find any segments to check")
-}
-
-func listCheckableSegments() ([]protocol.SegmentPayload, error) {
-	res := []protocol.SegmentPayload{}
-	all, err := db.ListAllSegments()
-	for _, seg := range all {
-		f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", seg.UUID))
-		_, err := os.Stat(f)
-		if os.IsNotExist(err) && !locked(seg.UUID) {
-			res = append(res, seg)
-		}
-	}
-	return res, err
-}
-
-func checkedSegmentStats() (int, map[string]int, error) {
-	res := map[string]int{}
-	all, err := db.ListAllSegments()
-	n := 0
-	for _, seg := range all {
-		f := path.Join(*cfg.AnnotationDataDir, fmt.Sprintf("%s.json", seg.UUID))
-		_, err := os.Stat(f)
-		if os.IsNotExist(err) {
-			continue
-		}
-		bts, err := ioutil.ReadFile(f)
-		if err != nil {
-			return n, res, fmt.Errorf("couldn't read file %s : %v", f, err)
-		}
-		var segment protocol.AnnotationPayload
-		err = json.Unmarshal(bts, &segment)
-		if err != nil {
-			return n, res, fmt.Errorf("couldn't unmarshal json : %v", err)
-		}
-		n++
-		status := segment.CurrentStatus
-
-		res["status:"+status.Name]++
-		if len(status.Source) > 0 {
-			res["checked by:"+status.Source]++
-		}
-		for _, label := range segment.Labels {
-			res["label:"+label]++
-		}
-	}
-	return n, res, err
 }
 
 var walkedURLs []string
@@ -507,10 +371,6 @@ type Config struct {
 	AnnotationDataDir *string `json:"annotation_data_dir"`
 	Debug             *bool   `json:"debug"`
 }
-
-var fileMutex = sync.RWMutex{}        // for file saving
-var lockMutex = sync.RWMutex{}        // for segment locking
-var lockMap = make(map[string]string) // segment uuid id -> user
 
 func main() {
 	var err error
@@ -549,7 +409,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	db = &dbapi.DBAPI{SourceDataDir: *cfg.SourceDataDir, AnnotationDataDir: *cfg.AnnotationDataDir}
+	if *cfg.SourceDataDir == "" {
+		fmt.Fprintf(os.Stderr, "Required flag source not set\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+	if *cfg.AnnotationDataDir == "" {
+		fmt.Fprintf(os.Stderr, "Required flag annotation not set\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	db = dbapi.NewDBAPI(*cfg.SourceDataDir, *cfg.AnnotationDataDir)
 	err = db.LoadData()
 	if err != nil {
 		log.Fatal("Couldn't load data: %v", err)
@@ -567,7 +438,7 @@ func main() {
 	//r.HandleFunc("/load/{sourcefile}/{username}", load).Methods("GET")
 	//r.HandleFunc("/next/{currid}/{username}", next).Methods("GET")
 	r.HandleFunc("/load/{sourcefile}", load).Methods("GET")
-	r.HandleFunc("/next", next).Methods("GET")
+	r.HandleFunc("/next/", next).Methods("POST")
 	r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
 	r.HandleFunc("/releaseall/{username}", releaseAll).Methods("GET")
 	r.HandleFunc("/stats/", stats).Methods("GET")

@@ -59,3 +59,12 @@ func (ap *AnnotationPayload) SetCurrentStatus(s Status) {
 	}
 	ap.CurrentStatus = s
 }
+
+// QueryPayload holds criteria used to search in the database
+type QueryPayload struct {
+	UserName      string   `json:"user_name"`
+	RequestStatus []string `json:"request_status"`
+	StepSize      int64    `json:"step_size"`
+	CurrID        string   `json:"curr_id"`
+	Context       int64    `json:"context"`
+}

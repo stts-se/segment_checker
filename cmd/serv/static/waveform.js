@@ -230,17 +230,19 @@ class Waveform {
 	}
     }
 
-    loadAudioBlob(blob, timeChunks) {
+    async loadAudioBlob(blob, timeChunks) {
 	console.log("waveform loadBlob", timeChunks);
-	this.wavesurfer.regions.clear();
-	this.wavesurfer.loadBlob(blob);
-	this.loadChunks(timeChunks);
+	await this.wavesurfer.regions.clear();
+	await this.wavesurfer.loadBlob(blob);
+	await this.loadChunks(timeChunks);
+	console.log("waveform loadBlob completed");
     }
 
-    loadAudioURL(audioFile, timeChunks) {
-	console.log("waveform loadAudio", audioFile, timeChunks);
-	this.wavesurfer.load(audioFile);
-	this.loadChunks(timeChunks);
+    async loadAudioURL(audioFile, timeChunks) {
+	console.log("waveform loadAudioURL", audioFile, timeChunks);
+	await this.wavesurfer.load(audioFile);
+	await this.loadChunks(timeChunks);
+	console.log("waveform loadAudioURL completed");
     }
 
     loadChunks(chunks, clearBefore) {
