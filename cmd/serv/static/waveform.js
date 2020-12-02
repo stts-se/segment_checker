@@ -82,7 +82,6 @@ class Waveform {
 	    region.element.addEventListener("click", async function (evt) {
 		main.debug("click", evt);
 		main.logEvent(evt);
-		//await LIB.sleep(5); // TODO
 		main.setSelectedRegion(region, evt.ctrlKey || main.options.autoplayFunc());
 	    });
 	    region.element.title = main.floatWithDecimals(region.start, 2) + " - " + main.floatWithDecimals(region.end, 2);
