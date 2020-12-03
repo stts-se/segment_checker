@@ -70,6 +70,11 @@ func (ap *AnnotationPayload) SetCurrentStatus(s Status) {
 	ap.CurrentStatus = s
 }
 
+type ReleasePayload struct {
+	UUID     string `json:"uuid"`
+	UserName string `json:"user_name"`
+}
+
 // QueryPayload holds criteria used to search in the database
 type QueryPayload struct {
 	UserName      string   `json:"user_name"`

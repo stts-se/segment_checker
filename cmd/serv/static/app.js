@@ -105,41 +105,41 @@ document.getElementById("play-right").addEventListener("click", function (evt) {
         waveform.playRightOfRegionIndex(0);
 });
 
-document.getElementById("save-badsample").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
-        save({ status: "skip", label: "bad sample", callback: loadStats });
-});
-document.getElementById("save-skip").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
-        save({ status: "skip", callback: loadStats });
-});
-document.getElementById("save-ok").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
-        save({ status: "ok", callback: loadStats });
-});
+// document.getElementById("save-badsample").addEventListener("click", function (evt) {
+//     if (!evt.target.disabled)
+//         save({ status: "skip", label: "bad sample", callback: loadStats });
+// });
+// document.getElementById("save-skip").addEventListener("click", function (evt) {
+//     if (!evt.target.disabled)
+//         save({ status: "skip", callback: loadStats });
+// });
+// document.getElementById("save-ok").addEventListener("click", function (evt) {
+//     if (!evt.target.disabled)
+//         save({ status: "ok", callback: loadStats });
+// });
 document.getElementById("save-badsample-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "skip", label: "bad sample", callback: next(1) });
+        saveReleaseAndNext({ status: "skip", label: "bad sample", stepSize: 1 });
 });
 document.getElementById("save-skip-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "skip", callback: next(1) });
+        saveReleaseAndNext({ status: "skip", stepSize: 1 });
 });
 document.getElementById("save-ok-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "ok", callback: next(1) });
+        saveReleaseAndNext({ status: "ok", stepSize: 1 });
 });
 
 if (document.getElementById("next")) {
     document.getElementById("next").addEventListener("click", function (evt) {
         if (!evt.target.disabled)
-            next(1);
+            saveReleaseAndNext({ stepSize: 1 });
     });
 }
 if (document.getElementById("prev")) {
     document.getElementById("prev").addEventListener("click", function (evt) {
         if (!evt.target.disabled)
-            next(-1);
+            saveReleaseAndNext({ stepSize: -1 });
     });
 }
 
@@ -376,29 +376,34 @@ document.getElementById("clear_messages").addEventListener("click", function (ev
 });
 
 
+function createQuery(stepSize) {
+    let query = {
+        step_size: stepSize,
+        user_name: document.getElementById("username").innerText,
+    }
+    if (context)
+        query.context = context;
+    if (cachedSegment && cachedSegment !== null)
+        query.curr_id = cachedSegment.uuid;
+
+    // search for status
+    if (document.getElementById("searchmode-ok").checked)
+        query.request_status = ["ok"];
+    else if (document.getElementById("searchmode-unchecked").checked)
+        query.request_status = ["unchecked"];
+    else if (document.getElementById("searchmode-checked").checked)
+        query.request_status = ["ok", "skip"];
+    return query;
+}
+
 function next(stepSize) {
     console.log("next called")
     releaseCurrentSegment();
 
     let url = baseURL + "/next/";
-    let payload = {
-        step_size: stepSize,
-        user_name: document.getElementById("username").innerText,
-    }
-    if (context)
-        payload.context = context;
-    if (cachedSegment && cachedSegment !== null)
-        payload.curr_id = cachedSegment.uuid;
+    let query = createQuery(stepSize);
 
-    // search for status
-    if (document.getElementById("searchmode-ok").checked)
-        payload.request_status = ["ok"];
-    else if (document.getElementById("searchmode-unchecked").checked)
-        payload.request_status = ["unchecked"];
-    else if (document.getElementById("searchmode-checked").checked)
-        payload.request_status = ["ok", "skip"];
-
-    console.log("next URL", url, payload);
+    console.log("next URL", url, query);
 
     fetch(url,
         {
@@ -407,7 +412,7 @@ function next(stepSize) {
                 'Accept': 'application/json, text/plain, */*',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(query),
         })
         .then(function (res) { return res.json(); })
         .then(function (data) {
@@ -419,7 +424,7 @@ function next(stepSize) {
                 return;
             } else if (data.message_type === "audio_chunk") {
                 let res = JSON.parse(data.payload);
-                
+
                 // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
                 let byteCharacters = atob(res.audio);
                 let byteNumbers = new Array(byteCharacters.length);
@@ -443,10 +448,10 @@ function next(stepSize) {
                 if (res.comment)
                     document.getElementById("comment").value = res.comment;
                 document.getElementById("current_status").innerText = status;
-                if (res.labels && res.labels.length > 0 ) 
+                if (res.labels && res.labels.length > 0)
                     document.getElementById("labels").innerText = res.labels;
                 else
-                document.getElementById("labels").innerText = "none";
+                    document.getElementById("labels").innerText = "none";
                 setEnabled(true);
                 logMessage("client: Loaded segment " + res.uuid + " from server");
                 loadStats();
@@ -465,6 +470,99 @@ function next(stepSize) {
             setEnabled(false);
         });
 
+}
+
+
+function saveReleaseAndNext(options) {
+    console.log("save called with options", options);
+    let user = document.getElementById("username").innerText;
+    if ((!user) || user === "") {
+        let msg = "Username unset -- cannot save!";
+        alert(msg);
+        logMessage(msg);
+        return;
+    }
+    if (!cachedSegment.uuid) {
+        let msg = "No cached segment -- cannot save!";
+        alert(msg);
+        logMessage(msg);
+        return;
+    }
+    let annotation = {};
+    if (options.status) { // create annotation to save
+        let status = {
+            source: user,
+            name: options.status,
+            timestamp: new Date().toUTCString(),
+        }
+        let labels = [];
+        if (options.label) {
+            labels.push(options.label);
+        }
+        let statusHistory = cachedSegment.status_history;
+        if (!statusHistory)
+            statusHistory = [];
+        if (cachedSegment.current_status.name !== "unchecked")
+            statusHistory.push(cachedSegment.current_status);
+        let region = waveform.getRegion(0)
+        annotation = {
+            uuid: cachedSegment.uuid,
+            url: cachedSegment.url,
+            segment_type: cachedSegment.segment_type,
+            chunk: {
+                start: region.start + cachedSegment.offset,
+                end: region.end + cachedSegment.offset,
+            },
+            current_status: status,
+            status_history: statusHistory,
+            labels: labels,
+            comment: document.getElementById("comment").value,
+        }
+    }
+    let query = createQuery(options.stepSize);
+    console.log("query", query);
+    let payload = {
+        annotation: annotation,
+        release: { user_name: user, uuid: cachedSegment.uuid },
+        query: query,
+    };
+    console.log("payload", JSON.stringify(payload));
+
+    let url = baseURL + "/saveandmovetonext/";
+
+    fetch(url,
+        {
+            method: "POST",
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            console.log(url, "=>", JSON.stringify(data));
+
+            if (data.error) {
+                logMessage('server error: Got error from POST to ' + url + ": " + data.error);
+                return;
+            }
+
+            if (data.info) {
+                logMessage('server: ' + data.info);
+                if (options.callback)
+                    options.callback();
+
+                return;
+            }
+
+            else {
+                logMessage('Unknown message type from server: ' + data.message_type);
+            }
+        })
+        .catch(function (error) {
+            logMessage('Request failed: ' + error);
+        });
 }
 
 function save(options) {
@@ -494,7 +592,7 @@ function save(options) {
     let statusHistory = cachedSegment.status_history;
     if (!statusHistory)
         statusHistory = [];
-    if (cachedSegment.current_status.name !== "unchecked") 
+    if (cachedSegment.current_status.name !== "unchecked")
         statusHistory.push(cachedSegment.current_status);
     let region = waveform.getRegion(0)
     let payload = {

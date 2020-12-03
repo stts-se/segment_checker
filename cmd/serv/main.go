@@ -147,6 +147,7 @@ func next(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info("query %#v", query)
 	if query.UserName == "" {
 		msg := fmt.Sprintf("User name not provided")
 		jsonError(w, msg, msg, http.StatusBadRequest)
@@ -230,6 +231,112 @@ func releaseAll(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", string(msgJSON))
 }
 
+type AnnotationReleaseAndQueryPayload struct {
+	Annotation protocol.AnnotationPayload `json:"annotation"`
+	Release    protocol.ReleasePayload    `json:"release"`
+	Query      protocol.QueryPayload      `json:"query"`
+}
+
+func saveAndMoveToNext(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+
+	// parse input
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		msg := fmt.Sprintf("failed to read request body : %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	log.Info("saveAndMoveToNext | input: %s", string(body))
+
+	payload := AnnotationReleaseAndQueryPayload{}
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		msg := fmt.Sprintf("failed to unmarshal incoming JSON : %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+
+	if payload.Annotation.UUID != "" && payload.Annotation.UUID != payload.Release.UUID {
+		msg := fmt.Sprintf("mismatching uuids for annotation/release data : %v/%v", payload.Annotation.UUID, payload.Release.UUID)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+
+	// save annotation
+	if payload.Annotation.UUID != "" {
+		err = db.Save(payload.Annotation)
+		if err != nil {
+			msg := fmt.Sprintf("failed to save annotation : %v", err)
+			jsonError(w, msg, msg, http.StatusInternalServerError)
+			return
+		}
+
+		msg := Message{Info: fmt.Sprintf("Saved annotation for segment with id %s", payload.Annotation.UUID)}
+
+		msgJSON, err := json.Marshal(msg)
+		if err != nil {
+			msg := fmt.Sprintf("failed to marshal msg : %v", err)
+			httpError(w, msg, msg, http.StatusBadRequest)
+			return
+		}
+		fmt.Fprintf(w, "%s\n", string(msgJSON))
+	}
+
+	// unlock entry
+	if payload.Release.UUID == "" {
+		msg := fmt.Sprintf("uuid not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	if payload.Release.UserName == "" {
+		msg := fmt.Sprintf("User name not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	err = db.Unlock(payload.Release.UUID, payload.Release.UserName)
+	if err != nil {
+		msg := fmt.Sprintf("Couldn't unlock segment: %v", err)
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	msg := Message{Info: fmt.Sprintf("Unlocked segment %s for user %s", payload.Release.UUID, payload.Release.UserName)}
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		msg := fmt.Sprintf("failed to marshal msg : %v", err)
+		httpError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s\n", string(msgJSON))
+
+	// get next
+	query := payload.Query
+	if query.UserName == "" {
+		msg := fmt.Sprintf("User name not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	if query.StepSize == 0 {
+		msg := fmt.Sprintf("Step size not provided")
+		jsonError(w, msg, msg, http.StatusBadRequest)
+		return
+	}
+	if query.CurrID == "undefined" {
+		query.CurrID = ""
+	}
+	sourceFile, err := db.GetNextSegment(query, true)
+	if err != nil {
+		msg := fmt.Sprintf("%v", err)
+		jsonError(w, msg, msg, http.StatusInternalServerError)
+		return
+	}
+	load(sourceFile, query.UserName, query.Context, w)
+}
+
 func save(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
@@ -296,7 +403,6 @@ func stats(w http.ResponseWriter, r *http.Request) {
 	//log.Info("load output json: %s", string(msgJSON))
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "%s\n", string(msgJSON))
-
 }
 
 var walkedURLs []string
@@ -385,10 +491,8 @@ func main() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
+	r.HandleFunc("/saveandmovetonext/", next).Methods("POST")
 	r.HandleFunc("/save/", save).Methods("POST")
-	//r.HandleFunc("/load/{sourcefile}/{username}", load).Methods("GET")
-	//r.HandleFunc("/next/{currid}/{username}", next).Methods("GET")
-	//r.HandleFunc("/load/{sourcefile}", load).Methods("GET")
 	r.HandleFunc("/next/", next).Methods("POST")
 	r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
 	r.HandleFunc("/releaseall/{username}", releaseAll).Methods("GET")
