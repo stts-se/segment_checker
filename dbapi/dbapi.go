@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/stts-se/segment_checker/log"
 	"github.com/stts-se/segment_checker/protocol"
 )
 
@@ -222,8 +221,28 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 	if err != nil {
 		return protocol.AnnotationPayload{}, fmt.Errorf("couldn't list files in folder %s : %v", api.SourceDataDir, err)
 	}
+	currIndex := 0
+	for i, sourceFile := range files {
+		if strings.HasSuffix(sourceFile.Name(), ".json") {
+			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile.Name()))
+			if err != nil {
+				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile.Name(), err)
+			}
+			var segment protocol.SegmentPayload
+			err = json.Unmarshal(bts, &segment)
+			if err != nil {
+				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile.Name(), err)
+			}
+			if segment.UUID == query.CurrID {
+				currIndex = i
+			}
+		}
+	}
 	seenCurrID := int64(-1)
-	for i := 0; i >= 0 && i < len(files); {
+	if query.CurrID == "" {
+		seenCurrID = 0
+	}
+	for i := currIndex; i >= 0 && i < len(files); {
 		sourceFile := files[i]
 		if strings.HasSuffix(sourceFile.Name(), ".json") {
 			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile.Name()))
@@ -237,6 +256,7 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 			}
 			if segment.UUID == query.CurrID {
 				seenCurrID = 0
+				//log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v CURR!", i+1, seenCurrID, query.StepSize)
 			} else {
 				annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
 				var annotation protocol.AnnotationPayload
@@ -257,8 +277,8 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 						CurrentStatus:  protocol.Status{Name: "unchecked"},
 					}
 				}
-				log.Debug("GetNextSegment %v %v", seenCurrID, query.StepSize)
-				if statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.UUID) {
+				//log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v status=%v", i+1, seenCurrID, query.StepSize, annotation.CurrentStatus.Name)
+				if seenCurrID >= 0 && statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.UUID) {
 					seenCurrID++
 					if query.CurrID == "" || seenCurrID == abs(query.StepSize) {
 						if lockOnLoad {
