@@ -1,5 +1,7 @@
 package protocol
 
+import "encoding/json"
+
 type SourcePayload struct {
 	URL         string  `json:"url"`
 	SegmentType string  `json:"segment_type"`
@@ -31,10 +33,17 @@ type Chunk struct {
 }
 
 type AudioChunk struct {
-	SegmentPayload
-	Audio    string `json:"audio"`
+	AnnotationPayload
+	// Audio is a base64 string representation of the audio
+	Audio    string `json:"audio,omitempty"`
 	FileType string `json:"file_type"`
 	Offset   int64  `json:"offset"`
+}
+
+func (ac AudioChunk) PrettyMarshal() ([]byte, error) {
+	copy := ac
+	copy.Audio = ""
+	return json.Marshal(copy)
 }
 
 // Annotation
@@ -47,10 +56,11 @@ type Status struct {
 
 type AnnotationPayload struct {
 	SegmentPayload
-	Labels        []string `json:"labels"`
-	CurrentStatus Status   `json:"current_status"`
-	StatusHistory []Status `json:"status_history"`
-	Comment       string   `json:"comment"`
+	Labels        []string `json:"labels,omitempty"`
+	CurrentStatus Status   `json:"current_status,omitempty"`
+	StatusHistory []Status `json:"status_history,omitempty"`
+	Comment       string   `json:"comment,omitempty"`
+	Index         int64    `json:"index,omit"`
 }
 
 func (ap *AnnotationPayload) SetCurrentStatus(s Status) {
@@ -66,5 +76,5 @@ type QueryPayload struct {
 	RequestStatus []string `json:"request_status"`
 	StepSize      int64    `json:"step_size"`
 	CurrID        string   `json:"curr_id"`
-	Context       int64    `json:"context"`
+	Context       int64    `json:"context,omitempty"`
 }

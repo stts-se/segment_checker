@@ -6,12 +6,14 @@ const boundaryMovementShort = 5;
 const boundaryMovementLong = 100;
 
 // context
-const contextParamEnabled = true;
+const debugMode = true;
 let context;
 
 let enabled = false;
 let waveform;
 let cachedSegment;
+
+let debugVar;
 
 function logMessage(msg) {
     let div = document.createElement("div");
@@ -40,97 +42,41 @@ function setEnabled(enable) {
     if (enable) {
         for (let i = 0; i < buttons.length; i++) {
             let btn = buttons[i];
-	    if (btn) {
-		btn.classList.remove("disabled");
-		btn.removeAttribute("disabled");
-		btn.disabled = false;
-	    }
+            if (btn) {
+                btn.classList.remove("disabled");
+                btn.removeAttribute("disabled");
+                btn.disabled = false;
+            }
         }
         document.getElementById("comment").removeAttribute("readonly");
     } else {
+        if (waveform)
+            waveform.clear();
         for (let i = 0; i < buttons.length; i++) {
             let btn = buttons[i];
-	    if (btn) {
-		btn.classList.add("disabled");
-		btn.disabled = true;
-	    }
+            if (btn) {
+                btn.classList.add("disabled");
+                btn.disabled = true;
+            }
         }
         document.getElementById("comment").setAttribute("readonly", "readonly");
+        document.getElementById("comment").value = "";
+        document.getElementById("labels").innerText = "";
     }
-}
-
-function loadSegmentFromFile(sourceSegmentFile) {
-    let url = baseURL + `/load?sourcefile=${sourceSegmentFile}&username=` + document.getElementById("username").innerText;
-    if (context)
-	url += "&context=${context}"
-
-    fetch(url,
-        {
-            method: "GET",
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-            //body: JSON.stringify(payload)
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            console.log(url, "=>", JSON.stringify(data));
-
-            if (data.error) {
-                logMessage('server error: Got error from GET to ' + url + ": " + data.error);
-                setEnabled(false);
-                return;
-            }
-
-            if (data.message_type === "audio_chunk") {
-                let res = JSON.parse(data.payload);
-
-                // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
-                let byteCharacters = atob(res.audio);
-                let byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                let byteArray = new Uint8Array(byteNumbers);
-
-                cachedSegment = {
-                    url: res.url,
-                    uuid: res.uuid,
-                    segment_type: res.segment_type,
-                    offset: res.offset,
-                    chunk: res.chunk,
-                }
-
-                console.log(JSON.stringify(cachedSegment));
-                let blob = new Blob([byteArray], { 'type': res.file_type });
-                loadAudioBlob(blob, res.chunk);
-                setEnabled(true);
-                logMessage("client: Loaded segment " + res.uuid + " from server");
-
-            } else {
-                logMessage('Unknown message type from server: ' + data.message_type);
-            }
-        })
-        .catch(function (error) {
-            logMessage('Request failed: ' + error);
-            setEnabled(false);
-        });
-
 }
 
 function autoplay() {
     console.log("autoplay called");
     if (document.getElementById("autoplay-none").checked)
-	return;
+        return;
     if (document.getElementById("autoplay-right").checked)
-	document.getElementById("play-right").click();
-    if (document.getElementById("autoplay-left").checked)
-	document.getElementById("play-left").click();
-    if (document.getElementById("autoplay-all").checked)
-	document.getElementById("play-all").click();
-    if (document.getElementById("autoplay-label").checked)
-	document.getElementById("play-label").click();
+        document.getElementById("play-right").click();
+    else if (document.getElementById("autoplay-left").checked)
+        document.getElementById("play-left").click();
+    else if (document.getElementById("autoplay-all").checked)
+        document.getElementById("play-all").click();
+    else if (document.getElementById("autoplay-label").checked)
+        document.getElementById("play-label").click();
 }
 
 async function loadAudioBlob(url, chunk) {
@@ -173,26 +119,26 @@ document.getElementById("save-ok").addEventListener("click", function (evt) {
 });
 document.getElementById("save-badsample-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "skip", label: "bad sample", callback: next(1, ["unchecked"]) });
+        save({ status: "skip", label: "bad sample", callback: next(1) });
 });
 document.getElementById("save-skip-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "skip", callback: next(1, ["unchecked"]) });
+        save({ status: "skip", callback: next(1) });
 });
 document.getElementById("save-ok-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        save({ status: "ok", callback: next(1, ["unchecked"]) });
+        save({ status: "ok", callback: next(1) });
 });
 
 if (document.getElementById("next")) {
     document.getElementById("next").addEventListener("click", function (evt) {
-	if (!evt.target.disabled)
-            next(1, ["unchecked"]);
+        if (!evt.target.disabled)
+            next(1);
     });
 }
 if (document.getElementById("prev")) {
     document.getElementById("prev").addEventListener("click", function (evt) {
-	if (!evt.target.disabled)
+        if (!evt.target.disabled)
             next(-1);
     });
 }
@@ -201,6 +147,8 @@ document.getElementById("reset").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.updateRegion(0, cachedSegment.chunk.start, cachedSegment.chunk.end);
         document.getElementById("comment").value = "";
+        document.getElementById("labels").innerText = "";
+        document.getElementById("current_status").innerText = "";
     }
 });
 document.getElementById("quit").addEventListener("click", function (evt) {
@@ -208,6 +156,8 @@ document.getElementById("quit").addEventListener("click", function (evt) {
         releaseCurrentSegment();
         waveform.clear();
         document.getElementById("comment").value = "";
+        document.getElementById("labels").innerText = "";
+        document.getElementById("current_status").innerText = "";
         setEnabled(false);
         loadStats();
     }
@@ -218,6 +168,8 @@ document.getElementById("release-all").addEventListener("click", function (evt) 
         releaseAll();
         waveform.clear();
         document.getElementById("comment").value = "";
+        document.getElementById("labels").innerText = "";
+        document.getElementById("current_status").innerText = "";
         setEnabled(false);
         loadStats();
     }
@@ -424,21 +376,28 @@ document.getElementById("clear_messages").addEventListener("click", function (ev
 });
 
 
-function next(stepSize, status) {
+function next(stepSize) {
     console.log("next called")
     releaseCurrentSegment();
 
-    let url = baseURL + "/next/"; // ${stepSize}/?username=${document.getElementById("username").innerText}`;
+    let url = baseURL + "/next/";
     let payload = {
-	step_size: stepSize,
-	user_name: document.getElementById("username").innerText,
+        step_size: stepSize,
+        user_name: document.getElementById("username").innerText,
     }
     if (context)
-	payload.context = context;
+        payload.context = context;
     if (cachedSegment && cachedSegment !== null)
         payload.curr_id = cachedSegment.uuid;
-    if (status)
-        payload.request_status = status;
+
+    // search for status
+    if (document.getElementById("searchmode-ok").checked)
+        payload.request_status = ["ok"];
+    else if (document.getElementById("searchmode-unchecked").checked)
+        payload.request_status = ["unchecked"];
+    else if (document.getElementById("searchmode-checked").checked)
+        payload.request_status = ["ok", "skip"];
+
     console.log("next URL", url, payload);
 
     fetch(url,
@@ -448,7 +407,7 @@ function next(stepSize, status) {
                 'Accept': 'application/json, text/plain, */*',
                 'Content-Type': 'application/json'
             },
-	    body: JSON.stringify(payload),
+            body: JSON.stringify(payload),
         })
         .then(function (res) { return res.json(); })
         .then(function (data) {
@@ -460,7 +419,7 @@ function next(stepSize, status) {
                 return;
             } else if (data.message_type === "audio_chunk") {
                 let res = JSON.parse(data.payload);
-
+                
                 // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
                 let byteCharacters = atob(res.audio);
                 let byteNumbers = new Array(byteCharacters.length);
@@ -469,17 +428,25 @@ function next(stepSize, status) {
                 }
                 let byteArray = new Uint8Array(byteNumbers);
 
-                cachedSegment = {
-                    url: res.url,
-                    uuid: res.uuid,
-                    segment_type: res.segment_type,
-                    offset: res.offset,
-                    chunk: res.chunk,
-                }
+                cachedSegment = res;
+                cachedSegment.audio = null; // no need to cache the audio blob
+                console.log("res => cachedSegment", JSON.stringify(cachedSegment));
 
-                console.log(JSON.stringify(cachedSegment));
                 let blob = new Blob([byteArray], { 'type': res.file_type });
                 loadAudioBlob(blob, res.chunk);
+                document.getElementById("segment_id").innerText = res.index + " | " + res.uuid;
+                let status = res.current_status.name;
+                if (res.current_status.source)
+                    status += " (" + res.current_status.source + ")";
+                if (res.current_status.timestamp)
+                    status += " " + res.current_status.timestamp;
+                if (res.comment)
+                    document.getElementById("comment").value = res.comment;
+                document.getElementById("current_status").innerText = status;
+                if (res.labels && res.labels.length > 0 ) 
+                    document.getElementById("labels").innerText = res.labels;
+                else
+                document.getElementById("labels").innerText = "none";
                 setEnabled(true);
                 logMessage("client: Loaded segment " + res.uuid + " from server");
                 loadStats();
@@ -524,6 +491,11 @@ function save(options) {
     if (options.label) {
         labels.push(options.label);
     }
+    let statusHistory = cachedSegment.status_history;
+    if (!statusHistory)
+        statusHistory = [];
+    if (cachedSegment.current_status.name !== "unchecked") 
+        statusHistory.push(cachedSegment.current_status);
     let region = waveform.getRegion(0)
     let payload = {
         uuid: cachedSegment.uuid,
@@ -534,7 +506,7 @@ function save(options) {
             end: region.end + cachedSegment.offset,
         },
         current_status: status,
-        status_history: [],
+        status_history: statusHistory,
         labels: labels,
         comment: document.getElementById("comment").value,
     }
@@ -591,12 +563,17 @@ window.addEventListener("load", function () {
         logMessage(msg);
         return;
     }
-    if (contextParamEnabled) {
+    if (debugMode) {
         if (params.get('context')) {
             context = params.get('context');
             document.getElementById("context").innerText = `${context} ms`;
             document.getElementById("context-view").classList.remove("hidden");
-	}
+        }
+        if (params.get('searchmode')) {
+            let mode = params.get('searchmode');
+            if (document.getElementById(`searchmode-${mode}`))
+                document.getElementById(`searchmode-${mode}`).checked = true;
+        }
     }
 
     console.log("main window loaded");
@@ -614,7 +591,7 @@ window.addEventListener("load", function () {
 
     waveform = new Waveform(options);
 
-    next(1, ["unchecked"]);
+    next(1);
 
     //loadSegmentFromFile('tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260_00021.json');
 
@@ -652,10 +629,10 @@ const shortcuts = {
     // 'ctrl ArrowLeft': { tooltip: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function () { waveform.moveStartForRegionIndex(0, -5) } },
     'ctrl ArrowLeft': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-left2left-short' },
     'ctrl ArrowRight': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-left2right-short' },
-    'shift ArrowLeft': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-right2left-short' },
-    'shift ArrowRight': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-right2right-short' },
     'ctrl ArrowUp': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long' },
     'ctrl ArrowDown': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-left2right-long' },
+    'shift ArrowLeft': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-right2left-short' },
+    'shift ArrowRight': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-right2right-short' },
     'shift ArrowUp': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-right2left-long' },
     'shift ArrowDown': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-right2right-long' },
     'ArrowLeft': { tooltip: 'left', funcDesc: 'Play left context', buttonID: 'play-left' },

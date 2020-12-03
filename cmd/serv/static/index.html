@@ -1,154 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 
-    <head>
+<head>
 	<title>Segment checker</title>
 	<meta charset="utf-8">
 	<link rel="stylesheet" href="layout.css">
 	<link rel="stylesheet" href="style.css">
-    </head>
+</head>
 
-    <body class="selected-font">
+<body class="selected-font">
 	<div class="wrapper">
 
-	    <!-- header row -->
-	    <div class="grid-logo"><img class="rounded-border" src="logo.png" width="50" /></div>
-	    <div class="grid-app_name">
-		<h2>Segment checker</h2>
-	    </div>
-
-	    <div class="grid-main smallcaps">
-
-		<div id="waveform-pane" class="grid-component rounded-border smallcaps resizable">
-		    <div id="waveform-spectrogram"></div>
-		    <div id="waveform"></div>
-		    <div id="waveform-timeline"></div>
-		    <!-- <audio id="audio"/> -->
+		<!-- header row -->
+		<div class="grid-logo"><img class="rounded-border" src="logo.png" width="50" /></div>
+		<div class="grid-app_name">
+			<h2>Segment checker</h2>
 		</div>
 
-		<div class="grid-component smallcaps" style="text-align: center">
+		<div class="grid-main smallcaps">
 
-		    <div style="margin: 10px" class="hidden">
-			<span id='save-badsample' class="btn" style="background-color:#ff5757">bad sample</span>
-			<span id='save-skip' class="btn" style="background-color:orange">skip</span>
-			<span id='save-ok' class="btn" style="background-color:lightgreen">save</span>
-		    </div>
-		    <div style="margin: 10px">
-			<span id='save-badsample-next' class="btn" style="background-color:#ff5757">bs+next</span>
-			<span id='save-skip-next' class="btn" style="background-color:orange">skip+next</span>
-			<span id='save-ok-next' class="btn" style="background-color:lightgreen">save+next</span>
-			<span id="prev" class='btn icon'>&laquo;</span>
-			<span id="next" class='btn icon'>&raquo;</span>
-		    </div>
-		    <div style="margin: 10px">
-			<span id="reset" class="btn" style="background-color:white">reset</span>
-			<span id="release-all" class="btn" style="background-color:lightgrey">release all</span>
-			<span id="quit" class="btn" style="background-color:yellow">quit</span> 
-			<span style="cursor: default" class="btnlabel">play:</span>
-			<span id="play-all" class="btn">all</span>
-			<span id="play-label" class="btn">label</span>
-			<span id="play-left" class="btn">left</span>
-			<span id="play-right" class="btn">right</span>
-		    </div>
-		    <div style="margin: 10px;" class="hidden">
-			<span id='move-left2left-short' class="btn">&lt;l</span>
-			<span id='move-left2right-short' class="btn">l&gt;</span>
-			<span id='move-right2left-short' class="btn">&lt;r</span>
-			<span id='move-right2right-short' class="btn">r&gt;</span>
-			<span id='move-left2left-long' class="btn">&laquo;l</span>
-			<span id='move-left2right-long' class="btn">l&raquo;</span>
-			<span id='move-right2left-long' class="btn">&laquo;r</span>
-			<span id='move-right2right-long' class="btn">r&raquo;</span>
-		    </div>
+			<div id="segment_id" class="nosmallcaps" style="text-align: center"></div>
 
-		    <!-- 
+			<div id="waveform-pane" class="grid-component rounded-border smallcaps resizable">
+				<div id="waveform-spectrogram"></div>
+				<div id="waveform"></div>
+				<div id="waveform-timeline"></div>
+			</div>
+
+			<div class="grid-component smallcaps" style="text-align: center">
+
+				<div style="margin: 10px" class="hidden">
+					<span id='save-badsample' class="btn" style="background-color:#ff5757">bad sample</span>
+					<span id='save-skip' class="btn" style="background-color:orange">skip</span>
+					<span id='save-ok' class="btn" style="background-color:lightgreen">save</span>
+				</div>
+				<div style="margin: 10px">
+					current status: <span id="current_status"></span>
+				<br/>
+					labels: <span id="labels"></span>
+				</div>
+				<div style="margin: 10px">
+					<span id='save-badsample-next' class="btn" style="background-color:#ff5757">bs+next</span>
+					<span id='save-skip-next' class="btn" style="background-color:orange">skip+next</span>
+					<span id='save-ok-next' class="btn" style="background-color:lightgreen">save+next</span>
+					<span id="prev" class='btn icon'>&laquo;</span>
+					<span id="next" class='btn icon'>&raquo;</span>
+				</div>
+				<div style="margin: 10px">
+					<span id="reset" class="btn" style="background-color:white">reset</span>
+					<span id="release-all" class="btn" style="background-color:lightgrey">release all</span>
+					<span id="quit" class="btn" style="background-color:yellow">quit</span>
+					<span style="cursor: default" class="btnlabel">play:</span><span id="play-all"
+						class="btn">all</span>
+					<span id="play-label" class="btn">label</span>
+					<span id="play-left" class="btn">left</span>
+					<span id="play-right" class="btn">right</span>
+				</div>
+				<div style="margin: 10px;" class="hidden">
+					<span id='move-left2left-short' class="btn">&lt;l</span>
+					<span id='move-left2right-short' class="btn">l&gt;</span>
+					<span id='move-right2left-short' class="btn">&lt;r</span>
+					<span id='move-right2right-short' class="btn">r&gt;</span>
+					<span id='move-left2left-long' class="btn">&laquo;l</span>
+					<span id='move-left2right-long' class="btn">l&raquo;</span>
+					<span id='move-right2left-long' class="btn">&laquo;r</span>
+					<span id='move-right2right-long' class="btn">r&raquo;</span>
+				</div>
+
+				<!-- 
 			 <div style="margin: 10px">
 			 <span id="reset" class="btn" style="background-color:white">reset</span>
 			 <span id="release-all" class="btn" style="background-color:lightgrey">release all</span>
 			 <span id="quit" class="btn" style="background-color:yellow">quit</span>
 			 </div>
 		    -->
+			</div>
+
+			<div class="smallcaps" style="padding: 10px">comment<br />
+				<textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment"
+					rows="4"></textarea>
+			</div>
+
+			<div style="padding: 10px; margin-top: 40px" class="nosmallcaps">
+				<em>
+					Developed by <a href="https://stts.se">STTS</a> on behalf of <a
+						href="https://www.speech.kth.se">TMH</a> &#183;
+					<a href="https://github.com/stts-se/segment_checker">github.com/stts-se/segment_checker</a>
+				</em>
+			</div>
+
 		</div>
 
-		<div class="smallcaps" style="padding: 10px">comment<br />
-		    <textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment"
-			      rows="4"></textarea>
-		</div>
+		<div class="grid-rightpanel smallcaps">
 
-		<div style="padding: 10px; margin-top: 40px" class="nosmallcaps">
-		    <em>
-			Developed by <a href="https://stts.se">STTS</a> on behalf of <a
-											 href="https://www.speech.kth.se">TMH</a> &#183;
-			<a href="https://github.com/stts-se/segment_checker">github.com/stts-se/segment_checker</a>
-		    </em>
-		</div>
-
-	    </div>
-
-	    <div class="grid-rightpanel smallcaps">
-
-		<div>user: <span class="nosmallcaps" id="username"></span> </div>
-		<div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
-		<!-- <div>autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
-		     <input type="radio" id="autoplay-left" name="autoplay" value="male"><label for="autoplay-left">Left</label>
-		     <input type="radio" id="autoplay-label" name="autoplay" value="female"><label for="autoplay-label">Label</label>
-		     <input type="radio" id="autoplay-right" name="autoplay" value="other"><label for="autoplay-right">Right</label> 
-		     <input type="radio" id="autoplay-all" name="autoplay" value="other"><label for="autoplay-all">All</label> 
-		     <input checked type="radio" id="autoplay-none" name="autoplay" value="other"><label for="autoplay-none">None</label> 
+			<div>user: <span class="nosmallcaps" id="username"></span> </div>
+				
+			<details><summary>options</summary>
+				<div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
+				<!-- <div>autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
+		     <input type="radio" id="autoplay-left" name="autoplay"><label for="autoplay-left">Left</label>
+		     <input type="radio" id="autoplay-label" name="autoplay"><label for="autoplay-label">Label</label>
+		     <input type="radio" id="autoplay-right" name="autoplay"><label for="autoplay-right">Right</label> 
+		     <input type="radio" id="autoplay-all" name="autoplay"><label for="autoplay-all">All</label> 
+		     <input checked type="radio" id="autoplay-none" name="autoplay"><label for="autoplay-none">None</label> 
 		     </span> </div>
 		-->
-		<details style="margin-top: 20px; width: 700px; overflow-y: scroll;">
-		    <summary>shortcuts</summary>
-		    <span class="nosmallcaps">
-			<table>
-			    <thead>
-				<tr>
-				    <th>Key</th>
-				    <th>Action</th>
-				</tr>
-			    </thead>
-			    <tbody id="shortcuts"></tbody>
-			</table>
-		    </span>
-		</details>
+				<div>search mode: <span class="nosmallcaps" id="searchmode" style="vertical-align: middle">
+						<input checked type="radio" id="searchmode-unchecked" name="searchmode"><label
+							for="searchmode-unchecked">Unchecked</label>
+						<input type="radio" id="searchmode-checked" name="searchmode"><label
+							for="searchmode-checked">Checked</label>
+						<input type="radio" id="searchmode-ok" name="searchmode"><label
+							for="searchmode-ok">Ok</label>
+						<input type="radio" id="searchmode-any" name="searchmode"><label
+							for="searchmode-any">Any</label>
+					</span>
+				</div>
+			</details>
 
-		<div style="margin-top: 20px; height: 200px; width: 700px; overflow-y: scroll">
-		    messages <span id="clear_messages" class="btn icon noborder"
-				   title="Click to clear messages">&#x1f5d1;</span>
-		    <div id="messages" class="nosmallcaps">
-		    </div>
+
+			<details style="margin-top: 20px; width: 700px; overflow-y: scroll;">
+				<summary>shortcuts</summary>
+				<span class="nosmallcaps">
+					<table>
+						<thead>
+							<tr>
+								<th>Key</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody id="shortcuts"></tbody>
+					</table>
+				</span>
+			</details>
+
+			<div style="margin-top: 20px; height: 200px; width: 700px; overflow-y: scroll">
+				messages <span id="clear_messages" class="btn icon noborder"
+					title="Click to clear messages">&#x1f5d1;</span>
+				<div id="messages" class="nosmallcaps">
+				</div>
+			</div>
+
+			<div style="margin-top: 20px; overflow-y: scroll; width: 700px">
+				stats <span class="btn icon noborder" id="load_stats" title="Click to reload stats">&#x21bb;</span>
+				<span class="nosmallcaps">
+					<table>
+						<!-- <thead><tr><th>Key</th><th>Action</th></tr></thead> -->
+						<tbody id="stats"></tbody>
+					</table>
+				</span>
+			</div>
+
 		</div>
 
-		<div style="margin-top: 20px; overflow-y: scroll; width: 700px">
-		    stats <span class="btn icon noborder" id="load_stats" title="Click to reload stats">&#x21bb;</span>
-		    <span class="nosmallcaps">
-			<table>
-			    <!-- <thead><tr><th>Key</th><th>Action</th></tr></thead> -->
-			    <tbody id="stats"></tbody>
-			</table>
-		    </span>
-		</div>
-
-	    </div>
-
-	    <!-- EXTERNAL LIBRARIES -->
+		<!-- EXTERNAL LIBRARIES -->
 
 
-	    <!-- http://wavesurfer-js.org -->
-	    <!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
-	    <!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js"></script> -->
-	    <!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js"></script> -->
+		<!-- http://wavesurfer-js.org -->
+		<!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
+		<!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js"></script> -->
+		<!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js"></script> -->
 
-	    <script src="lib/wavesurfer.js"></script>
-	    <script src="lib/wavesurfer.regions.min.js"></script>
-	    <script src="lib/wavesurfer.timeline.min.js"></script>
-	    <script src="lib/wavesurfer.spectrogram.min.js"></script>
+		<script src="lib/wavesurfer.js"></script>
+		<script src="lib/wavesurfer.regions.min.js"></script>
+		<script src="lib/wavesurfer.timeline.min.js"></script>
+		<script src="lib/wavesurfer.spectrogram.min.js"></script>
 
-	    <!-- OWN LIBRARIES -->
-	    <script src="lib.js"></script>
-	    <script src="waveform.js"></script>
+		<!-- OWN LIBRARIES -->
+		<script src="lib.js"></script>
+		<script src="waveform.js"></script>
 
-	    <!-- LOCAL CODE -->
+		<!-- LOCAL CODE -->
 		<script src="app.js"></script>
 
 </body>

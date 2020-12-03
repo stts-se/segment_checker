@@ -10,23 +10,24 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/stts-se/segment_checker/log"
 	"github.com/stts-se/segment_checker/protocol"
 )
 
 type DBAPI struct {
 	SourceDataDir, AnnotationDataDir string
-	FileMutex                        *sync.RWMutex      // for file reading/writing
-	lockMutex                        *sync.RWMutex      // for segment locking
-	lockMap                          *map[string]string // segment uuid id -> user
+	fileMutex                        *sync.RWMutex     // for file reading/writing
+	lockMutex                        *sync.RWMutex     // for segment locking
+	lockMap                          map[string]string // segment uuid id -> user
 }
 
 func NewDBAPI(sourceDataDir, annotationDataDir string) *DBAPI {
 	res := DBAPI{
 		SourceDataDir:     sourceDataDir,
 		AnnotationDataDir: annotationDataDir,
-		FileMutex:         &sync.RWMutex{},
+		fileMutex:         &sync.RWMutex{},
 		lockMutex:         &sync.RWMutex{},
-		lockMap:           &map[string]string{},
+		lockMap:           map[string]string{},
 	}
 	return &res
 }
@@ -71,7 +72,7 @@ func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
 	return res, nil
 }
 
-func (api *DBAPI) ListCheckableSegments() ([]protocol.SegmentPayload, error) {
+func (api *DBAPI) ListUncheckedSegments() ([]protocol.SegmentPayload, error) {
 	res := []protocol.SegmentPayload{}
 	all, err := api.ListAllSegments()
 	for _, seg := range all {
@@ -87,7 +88,7 @@ func (api *DBAPI) ListCheckableSegments() ([]protocol.SegmentPayload, error) {
 func (api *DBAPI) Unlock(uuid, user string) error {
 	api.lockMutex.Lock()
 	defer api.lockMutex.Unlock()
-	lockedBy, exists := (*api.lockMap)[uuid]
+	lockedBy, exists := api.lockMap[uuid]
 	if !exists {
 		//log.Warning("unlock: %v is not locked", uuid)
 		return fmt.Errorf("%v is not locked", uuid)
@@ -98,13 +99,13 @@ func (api *DBAPI) Unlock(uuid, user string) error {
 		return fmt.Errorf("%v is not locked by user %s", uuid, user)
 		//return nil
 	}
-	delete(*api.lockMap, uuid)
+	delete(api.lockMap, uuid)
 	return nil
 }
 
 func (api *DBAPI) UnlockAll(user string) (int, error) {
 	n := 0
-	for k, v := range *api.lockMap {
+	for k, v := range api.lockMap {
 		if v == user {
 			err := api.Unlock(k, v)
 			if err != nil {
@@ -119,18 +120,18 @@ func (api *DBAPI) UnlockAll(user string) (int, error) {
 func (api *DBAPI) Locked(uuid string) bool {
 	api.lockMutex.RLock()
 	defer api.lockMutex.RUnlock()
-	_, res := (*api.lockMap)[uuid]
+	_, res := api.lockMap[uuid]
 	return res
 }
 
 func (api *DBAPI) Lock(uuid, user string) error {
 	api.lockMutex.Lock()
 	defer api.lockMutex.Unlock()
-	lockedBy, exists := (*api.lockMap)[uuid]
+	lockedBy, exists := api.lockMap[uuid]
 	if exists {
 		return fmt.Errorf("%v is already locked by user %s", uuid, lockedBy)
 	}
-	(*api.lockMap)[uuid] = user
+	api.lockMap[uuid] = user
 	return nil
 }
 
@@ -172,7 +173,7 @@ func (api *DBAPI) Stats() (map[string]int, error) {
 	if err != nil {
 		return map[string]int{}, fmt.Errorf("couldn't list segments: %v", err)
 	}
-	checkableSegs, err := api.ListCheckableSegments()
+	checkableSegs, err := api.ListUncheckedSegments()
 	if err != nil {
 		return map[string]int{}, fmt.Errorf("couldn't list checkable segments: %v", err)
 	}
@@ -184,12 +185,12 @@ func (api *DBAPI) Stats() (map[string]int, error) {
 		"total":     len(allSegs),
 		"checked":   nChecked,
 		"checkable": len(checkableSegs),
-		"locked":    len(*api.lockMap),
+		"locked":    len(api.lockMap),
 	}
 	for label, count := range checkedStats {
 		res[label] = count
 	}
-	for _, user := range *api.lockMap {
+	for _, user := range api.lockMap {
 		res["locked by:"+user]++
 	}
 	return res, nil
@@ -207,60 +208,75 @@ func statusMatch(requestStatus []string, actualStatus string) bool {
 	return false
 }
 
-func (api *DBAPI) GetNextCheckableSegment(query protocol.QueryPayload) (string, error) {
-	api.FileMutex.RLock()
-	defer api.FileMutex.RUnlock()
+func abs(i int64) int64 {
+	if i > 0 {
+		return i
+	}
+	return -i
+}
+
+func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (protocol.AnnotationPayload, error) {
+	api.fileMutex.RLock()
+	defer api.fileMutex.RUnlock()
 	files, err := ioutil.ReadDir(api.SourceDataDir)
 	if err != nil {
-		return "", fmt.Errorf("couldn't list files in folder %s : %v", api.SourceDataDir, err)
+		return protocol.AnnotationPayload{}, fmt.Errorf("couldn't list files in folder %s : %v", api.SourceDataDir, err)
 	}
 	seenCurrID := int64(-1)
-	fallbackFile := ""
-	for _, sourceFile := range files {
+	for i := 0; i >= 0 && i < len(files); {
+		sourceFile := files[i]
 		if strings.HasSuffix(sourceFile.Name(), ".json") {
 			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile.Name()))
 			if err != nil {
-				return "", fmt.Errorf("couldn't read file %s : %v", sourceFile.Name(), err)
+				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile.Name(), err)
 			}
 			var segment protocol.SegmentPayload
 			err = json.Unmarshal(bts, &segment)
 			if err != nil {
-				return "", fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile.Name(), err)
+				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile.Name(), err)
 			}
 			if segment.UUID == query.CurrID {
 				seenCurrID = 0
-				continue
-			}
-			seenCurrID++
-			annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
-			_, err = os.Stat(annotationFile)
-			status := "unchecked"
-			if err == nil {
+			} else {
+				annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
 				var annotation protocol.AnnotationPayload
-				err = json.Unmarshal(bts, &annotation)
-				if err != nil {
-					return "", fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
+				_, err = os.Stat(annotationFile)
+				if err == nil {
+					bts, err = ioutil.ReadFile(annotationFile)
+					if err != nil {
+						return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", annotationFile, err)
+					}
+					err = json.Unmarshal(bts, &annotation)
+					if err != nil {
+						return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
+					}
+					//log.Debug("GetNextSegment annotation %v %#v", seenCurrID, annotation)
+				} else {
+					annotation = protocol.AnnotationPayload{
+						SegmentPayload: segment,
+						CurrentStatus:  protocol.Status{Name: "unchecked"},
+					}
 				}
-				status = annotation.CurrentStatus.Name
-			}
-			if statusMatch(query.RequestStatus, status) && !api.Locked(segment.UUID) {
-				if query.CurrID == "" || seenCurrID == query.StepSize {
-					return sourceFile.Name(), nil
+				log.Debug("GetNextSegment %v %v", seenCurrID, query.StepSize)
+				if statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.UUID) {
+					seenCurrID++
+					if query.CurrID == "" || seenCurrID == abs(query.StepSize) {
+						if lockOnLoad {
+							api.Lock(annotation.UUID, query.UserName)
+						}
+						annotation.Index = int64(i + 1)
+						return annotation, nil
+					}
 				}
-				fallbackFile = sourceFile.Name()
 			}
-			// if os.IsNotExist(err) && !api.Locked(segment.UUID) {
-			// 	if query.CurrID == "" || seenCurrID == query.StepSize {
-			// 		return sourceFile.Name(), nil
-			// 	}
-			// 	fallbackFile = sourceFile.Name()
-			// }
+		}
+		if query.StepSize < 0 {
+			i--
+		} else {
+			i++
 		}
 	}
-	if fallbackFile != "" {
-		return fallbackFile, nil
-	}
-	return "", fmt.Errorf("couldn't find any segments to check")
+	return protocol.AnnotationPayload{}, fmt.Errorf("couldn't find any segments to check")
 }
 
 func (api *DBAPI) Save(annotation protocol.AnnotationPayload) error {
@@ -270,11 +286,11 @@ func (api *DBAPI) Save(annotation protocol.AnnotationPayload) error {
 		return fmt.Errorf("marhsal failed : %v", err)
 	}
 
-	api.FileMutex.Lock()
-	defer api.FileMutex.Unlock()
+	api.fileMutex.Lock()
+	defer api.fileMutex.Unlock()
 	file, err := os.Create(f)
 	if err != nil {
-		return fmt.Errorf("failed create file %s : %v", err)
+		return fmt.Errorf("failed create file %s : %v", f, err)
 	}
 	defer file.Close()
 	file.Write(writeJSON)

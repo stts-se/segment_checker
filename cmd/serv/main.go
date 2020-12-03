@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -75,55 +74,36 @@ var contextMap = map[string]int64{
 
 const fallbackContext = int64(1000)
 
-func load0(sourceFile, userName string, explicitContext int64, w http.ResponseWriter) {
-	db.FileMutex.RLock()
-	defer db.FileMutex.RUnlock()
-	fName := path.Join(*cfg.SourceDataDir, sourceFile)
-	bts, err := ioutil.ReadFile(fName)
-	if err != nil {
-		msg := fmt.Sprintf("Read file failed: %v", err)
-		jsonError(w, msg, msg, http.StatusInternalServerError)
-		return
-	}
-	var segment protocol.SegmentPayload
-	err = json.Unmarshal(bts, &segment)
-	if err != nil {
-		msg := fmt.Sprintf("Unmarshal failed: %v", err)
-		jsonError(w, msg, msg, http.StatusInternalServerError)
-		return
-	}
-	err = db.Lock(segment.UUID, userName)
-	if err != nil {
-		msg := fmt.Sprintf("Couldn't lock segment: %v", err)
-		jsonError(w, msg, msg, http.StatusInternalServerError)
-		return
-	}
+func load(annotation protocol.AnnotationPayload, userName string, explicitContext int64, w http.ResponseWriter) {
 	var context int64
 	if explicitContext > 0 {
 		context = explicitContext
-	} else if ctx, ok := contextMap[segment.SegmentType]; ok {
+	} else if ctx, ok := contextMap[annotation.SegmentType]; ok {
 		context = ctx
 	} else {
 		context = fallbackContext
 	}
 
 	request := protocol.SplitRequestPayload{
-		URL:          segment.URL,
-		Chunk:        segment.Chunk,
-		SegmentType:  segment.SegmentType,
+		URL:          annotation.URL,
+		Chunk:        annotation.Chunk,
+		SegmentType:  annotation.SegmentType,
 		LeftContext:  context,
 		RightContext: context,
 	}
-	fmt.Printf("DEBUG %#v\n", request)
 	res, err := chunkExtractor.ProcessURLWithContext(request, "")
 	if err != nil {
 		msg := fmt.Sprintf("chunk extractor failed : %v", err)
 		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
-	res.UUID = segment.UUID
-	res.URL = segment.URL
-	res.SegmentType = segment.SegmentType
+	chunk := res.Chunk
+	res.AnnotationPayload = annotation
+	res.Chunk = chunk
+
+	// debug print
+	resJSONDbg, _ := res.PrettyMarshal()
+	log.Debug("ProcessURLWithContext gave %#v", string(resJSONDbg))
 
 	resJSON, err := json.Marshal(res)
 	if err != nil {
@@ -141,39 +121,10 @@ func load0(sourceFile, userName string, explicitContext int64, w http.ResponseWr
 		msg := fmt.Sprintf("failed to marshal msg : %v", err)
 		httpError(w, msg, msg, http.StatusInternalServerError)
 		return
-
 	}
 	//log.Info("load output json: %s", string(msgJSON))
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "%s\n", string(msgJSON))
-}
-
-func load(w http.ResponseWriter, r *http.Request) {
-	var err error
-	sourceFile := getParam("sourcefile", r)
-	userName := getParam("username", r)
-	contextS := getParam("context", r)
-	if sourceFile == "" {
-		msg := fmt.Sprintf("Source file not provided")
-		jsonError(w, msg, msg, http.StatusBadRequest)
-		return
-	}
-	if userName == "" {
-		msg := fmt.Sprintf("User name not provided")
-		jsonError(w, msg, msg, http.StatusBadRequest)
-		return
-	}
-	context := int64(-1)
-	if contextS != "" {
-		context, err = strconv.ParseInt(contextS, 10, 64)
-		if err != nil {
-			msg := fmt.Sprintf("Couldn't parse int %s", contextS)
-			jsonError(w, msg, msg, http.StatusBadRequest)
-			return
-		}
-	}
-	log.Info("load | input: %s %s %v", sourceFile, userName, contextS)
-	load0(sourceFile, userName, context, w)
 }
 
 func next(w http.ResponseWriter, r *http.Request) {
@@ -209,13 +160,13 @@ func next(w http.ResponseWriter, r *http.Request) {
 	if query.CurrID == "undefined" {
 		query.CurrID = ""
 	}
-	sourceFile, err := db.GetNextCheckableSegment(query)
+	sourceFile, err := db.GetNextSegment(query, true)
 	if err != nil {
 		msg := fmt.Sprintf("%v", err)
 		jsonError(w, msg, msg, http.StatusInternalServerError)
 		return
 	}
-	load0(sourceFile, query.UserName, query.Context, w)
+	load(sourceFile, query.UserName, query.Context, w)
 }
 
 func release(w http.ResponseWriter, r *http.Request) {
@@ -437,7 +388,7 @@ func main() {
 	r.HandleFunc("/save/", save).Methods("POST")
 	//r.HandleFunc("/load/{sourcefile}/{username}", load).Methods("GET")
 	//r.HandleFunc("/next/{currid}/{username}", next).Methods("GET")
-	r.HandleFunc("/load/{sourcefile}", load).Methods("GET")
+	//r.HandleFunc("/load/{sourcefile}", load).Methods("GET")
 	r.HandleFunc("/next/", next).Methods("POST")
 	r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
 	r.HandleFunc("/releaseall/{username}", releaseAll).Methods("GET")

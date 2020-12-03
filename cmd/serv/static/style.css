@@ -144,3 +144,7 @@ body {
     -moz-transform: scale(95%); 
     -moz-transform-origin: 0 0;
 }
+
+summary:hover {
+    cursor: pointer;
+}
