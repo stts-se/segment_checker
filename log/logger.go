@@ -24,7 +24,7 @@ func Warning(format string, args ...interface{}) {
 
 // Error logs a message of level 'info'.
 func Error(format string, args ...interface{}) {
-	Log("info", format, args...)
+	Log("error", format, args...)
 }
 
 // Info logs a message of level 'info'.

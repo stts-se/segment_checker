@@ -34,7 +34,7 @@ func main() {
 				log.Fatalf("Couldn't create uuid: %v", err)
 			}
 			segment := protocol.SegmentPayload{
-				UUID:        fmt.Sprintf("%v", id),
+				ID:          fmt.Sprintf("%v", id),
 				URL:         source.URL,
 				SegmentType: source.SegmentType,
 				Chunk:       chunk,

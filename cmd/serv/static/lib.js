@@ -31,3 +31,30 @@ LIB.uuidv4 = function () {
 LIB.sleep = function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+LIB.timestampYYYYMMDDHHMMSS = function() {
+    let date = new Date();
+    let yyyy = date.getFullYear();
+    let mo = date.getMonth()+1;
+    if (mo < 10) mo = "0" + mo;
+    let da = date.getDate();
+    if (da < 10) da = "0" + da;
+    let hh = date.getHours();
+    if (hh < 10) hh = "0" + hh;
+    let mi = date.getMinutes();
+    if (mi < 10) mi = "0" + mi;
+    let ss = date.getSeconds();
+    if (ss < 10) ss = "0" + ss;
+    return yyyy + "-" + mo + "-" + da + " " + hh + ":" + mi + ":" + ss;
+}
+
+LIB.timestampHHMMSS = function() {
+    let date = new Date();
+    let hh = date.getHours();
+    if (hh < 10) hh = "0" + hh;
+    let mi = date.getMinutes();
+    if (mi < 10) mi = "0" + mi;
+    let ss = date.getSeconds();
+    if (ss < 10) ss = "0" + ss;
+    return hh + ":" + mi + ":" + ss;
+}

@@ -9,7 +9,7 @@ type SourcePayload struct {
 }
 
 type SegmentPayload struct {
-	UUID        string `json:"uuid"`
+	ID          string `json:"id"`
 	URL         string `json:"url"`
 	SegmentType string `json:"segment_type"`
 	Chunk       Chunk  `json:"chunk"`
@@ -60,7 +60,7 @@ type AnnotationPayload struct {
 	CurrentStatus Status   `json:"current_status,omitempty"`
 	StatusHistory []Status `json:"status_history,omitempty"`
 	Comment       string   `json:"comment,omitempty"`
-	Index         int64    `json:"index,omit"`
+	Index         int64    `json:"index,omitempty"`
 }
 
 func (ap *AnnotationPayload) SetCurrentStatus(s Status) {
@@ -70,16 +70,16 @@ func (ap *AnnotationPayload) SetCurrentStatus(s Status) {
 	ap.CurrentStatus = s
 }
 
-type ReleasePayload struct {
-	UUID     string `json:"uuid"`
-	UserName string `json:"user_name"`
+type UnlockPayload struct {
+	SegmentID string `json:"segment_id"`
+	UserName  string `json:"user_name"`
 }
 
 // QueryPayload holds criteria used to search in the database
 type QueryPayload struct {
-	UserName      string   `json:"user_name"`
-	RequestStatus []string `json:"request_status"`
-	StepSize      int64    `json:"step_size"`
-	CurrID        string   `json:"curr_id"`
-	Context       int64    `json:"context,omitempty"`
+	UserName      string `json:"user_name"`
+	RequestStatus string `json:"request_status"`
+	StepSize      int64  `json:"step_size"`
+	CurrID        string `json:"curr_id"`
+	Context       int64  `json:"context,omitempty"`
 }

@@ -5,12 +5,14 @@ const wsBase = baseURL.replace(/^http/, "ws");
 const clientID = LIB.uuidv4();
 let ws;
 
-const boundaryMovementShort = 5;
-const boundaryMovementLong = 100;
-
-// context
-const debugMode = true;
-let context;
+let gloptions = {
+    boundaryMovementShort : 5,
+    boundaryMovementLong : 100,
+    requestStatus: "Unchecked",
+    autoplay: "None",
+    //context: -1,
+    //userName: "nizze",
+}
 
 let enabled = false;
 let waveform;
@@ -18,13 +20,23 @@ let cachedSegment;
 
 let debugVar;
 
+function logWarning(msg) {
+    let div = logMessage(msg);
+    div.style.color = "orange";
+}
+
+function logError(msg) {
+    let div = logMessage(msg);
+    div.style.color = "red";
+}
+
 function logMessage(msg) {
-    debugVar = msg;
     let div = document.createElement("div");
-    div.innerText = msg;
-    if (msg.toLowerCase().includes("error"))
-	div.style["color"] = "red";
+    div.innerText = LIB.timestampHHMMSS() + " " + msg;
+    // if (msg.toLowerCase().includes("error"))
+    // 	div.style.color = "red";
     messages.prepend(div);
+    return div;
 }
 
 function setEnabled(enable) {
@@ -42,8 +54,8 @@ function setEnabled(enable) {
         document.getElementById("play-left"),
         document.getElementById("reset"),
         document.getElementById("quit"),
-        document.getElementById("next"),
-        document.getElementById("prev"),
+        // document.getElementById("next"),
+        // document.getElementById("prev"),
     ];
     if (enable) {
         for (let i = 0; i < buttons.length; i++) {
@@ -56,8 +68,7 @@ function setEnabled(enable) {
         }
         document.getElementById("comment").removeAttribute("readonly");
     } else {
-        if (waveform)
-            waveform.clear();
+        document.getElementById("comment").setAttribute("readonly", "readonly");
         for (let i = 0; i < buttons.length; i++) {
             let btn = buttons[i];
             if (btn) {
@@ -65,9 +76,6 @@ function setEnabled(enable) {
                 btn.disabled = true;
             }
         }
-        document.getElementById("comment").setAttribute("readonly", "readonly");
-        document.getElementById("comment").value = "";
-        document.getElementById("labels").innerText = "";
     }
 }
 
@@ -86,12 +94,13 @@ function autoplay() {
 }
 
 async function loadAudioBlob(url, chunk) {
-    await waveform.loadAudioBlob(url, [chunk]);
+    waveform.loadAudioBlob(url, [chunk]);
     //autoplay();
 }
 
 function loadAudioURL(url, chunk) {
     waveform.loadAudioURL(url, [chunk]);
+    //autoplay();
 }
 
 document.getElementById("play-all").addEventListener("click", function (evt) {
@@ -113,82 +122,91 @@ document.getElementById("play-right").addEventListener("click", function (evt) {
 
 // document.getElementById("save-badsample").addEventListener("click", function (evt) {
 //     if (!evt.target.disabled)
-//         save({ status: "skip", label: "bad sample", callback: requestStats });
+//         save({ status: "skip", label: "bad sample" });
 // });
 // document.getElementById("save-skip").addEventListener("click", function (evt) {
 //     if (!evt.target.disabled)
-//         save({ status: "skip", callback: requestStats });
+//         save({ status: "skip" });
 // });
 // document.getElementById("save-ok").addEventListener("click", function (evt) {
 //     if (!evt.target.disabled)
-//         save({ status: "ok", callback: requestStats });
+//         save({ status: "ok" });
 // });
 document.getElementById("save-badsample-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        saveReleaseAndNext({ status: "skip", label: "bad sample", stepSize: 1 });
+        saveUnlockAndNext({ status: "skip", label: "bad sample", stepSize: 1 });
 });
 document.getElementById("save-skip-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        saveReleaseAndNext({ status: "skip", stepSize: 1 });
+        saveUnlockAndNext({ status: "skip", stepSize: 1 });
 });
 document.getElementById("save-ok-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        saveReleaseAndNext({ status: "ok", stepSize: 1 });
+        saveUnlockAndNext({ status: "ok", stepSize: 1 });
 });
 
 if (document.getElementById("next")) {
     document.getElementById("next").addEventListener("click", function (evt) {
         if (!evt.target.disabled)
-            saveReleaseAndNext({ stepSize: 1 });
+            saveUnlockAndNext({ stepSize: 1 });
     });
 }
 if (document.getElementById("prev")) {
     document.getElementById("prev").addEventListener("click", function (evt) {
         if (!evt.target.disabled)
-            saveReleaseAndNext({ stepSize: -1 });
+            saveUnlockAndNext({ stepSize: -1 });
     });
+}
+
+function clear() {
+    if (waveform)
+	waveform.clear();
+    document.getElementById("comment").value = "";
+    //document.getElementById("labels").innerText = "";
+    document.getElementById("current_status").innerText = "";
+    document.getElementById("current_status_div").style.backgroundColor = "";
+    document.getElementById("current_status_div").style.borderColor = "";
+    document.getElementById("segment_id").innerHTML = "&nbsp;";
 }
 
 document.getElementById("reset").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.updateRegion(0, cachedSegment.chunk.start, cachedSegment.chunk.end);
-        document.getElementById("comment").value = "";
-        document.getElementById("labels").innerText = "";
-        document.getElementById("current_status").innerText = "";
+	if (cachedSegment.comment)
+            document.getElementById("comment").value = cachedSegment.comment;
+	else
+            document.getElementById("comment").value = "";
     }
 });
 document.getElementById("quit").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        releaseCurrentSegment();
-        waveform.clear();
-        document.getElementById("comment").value = "";
-        document.getElementById("labels").innerText = "";
-        document.getElementById("current_status").innerText = "";
+        unlockCurrentSegment();
         setEnabled(false);
-        //requestStats();
+	clear();
     }
 });
 
-document.getElementById("release-all").addEventListener("click", function (evt) {
+document.getElementById("unlock-all").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        releaseAll();
-        waveform.clear();
-        document.getElementById("comment").value = "";
-        document.getElementById("labels").innerText = "";
-        document.getElementById("current_status").innerText = "";
+        unlockAll();
         setEnabled(false);
-        //requestStats();
+	clear();
     }
 });
 
 document.getElementById("load_stats").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
-        requestStats();
+    if (!evt.target.disabled) {
+	let request = {
+    	    'client_id': clientID,
+    	    'message_type': 'stats',
+	};
+	ws.send(JSON.stringify(request));
+    }
 });
 
 document.getElementById("move-left2left-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveStartForRegionIndex(0, -boundaryMovementShort);
+        waveform.moveStartForRegionIndex(0, -gloptions.boundaryMovementShort);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -196,7 +214,7 @@ document.getElementById("move-left2left-short").addEventListener("click", functi
 });
 document.getElementById("move-left2right-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveStartForRegionIndex(0, boundaryMovementShort);
+        waveform.moveStartForRegionIndex(0, gloptions.boundaryMovementShort);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -204,7 +222,7 @@ document.getElementById("move-left2right-short").addEventListener("click", funct
 });
 document.getElementById("move-right2left-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveEndForRegionIndex(0, -boundaryMovementShort);
+        waveform.moveEndForRegionIndex(0, -gloptions.boundaryMovementShort);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -212,7 +230,7 @@ document.getElementById("move-right2left-short").addEventListener("click", funct
 });
 document.getElementById("move-right2right-short").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveEndForRegionIndex(0, boundaryMovementShort);
+        waveform.moveEndForRegionIndex(0, gloptions.boundaryMovementShort);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -221,7 +239,7 @@ document.getElementById("move-right2right-short").addEventListener("click", func
 
 document.getElementById("move-left2left-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveStartForRegionIndex(0, -boundaryMovementLong);
+        waveform.moveStartForRegionIndex(0, -gloptions.boundaryMovementLong);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -229,7 +247,7 @@ document.getElementById("move-left2left-long").addEventListener("click", functio
 });
 document.getElementById("move-left2right-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveStartForRegionIndex(0, boundaryMovementLong);
+        waveform.moveStartForRegionIndex(0, gloptions.boundaryMovementLong);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -237,7 +255,7 @@ document.getElementById("move-left2right-long").addEventListener("click", functi
 });
 document.getElementById("move-right2left-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveEndForRegionIndex(0, -boundaryMovementLong);
+        waveform.moveEndForRegionIndex(0, -gloptions.boundaryMovementLong);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -245,7 +263,7 @@ document.getElementById("move-right2left-long").addEventListener("click", functi
 });
 document.getElementById("move-right2right-long").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-        waveform.moveEndForRegionIndex(0, boundaryMovementLong);
+        waveform.moveEndForRegionIndex(0, gloptions.boundaryMovementLong);
         evt.preventDefault();
         evt.stopPropagation();
         return false;
@@ -253,6 +271,8 @@ document.getElementById("move-right2right-long").addEventListener("click", funct
 });
 
 function displayAudioChunk(chunk) {
+    clear();
+    setEnabled(false);
     // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
     let byteCharacters = atob(chunk.audio);
     let byteNumbers = new Array(byteCharacters.length);
@@ -263,29 +283,49 @@ function displayAudioChunk(chunk) {
 
     cachedSegment = chunk;
     cachedSegment.audio = null; // no need to cache the audio blob
-    console.log("res => cachedSegment", JSON.stringify(cachedSegment));
+    console.log("res => cache", JSON.stringify(cachedSegment));
 
     let blob = new Blob([byteArray], { 'type': chunk.file_type });
     loadAudioBlob(blob, chunk.chunk);
-    document.getElementById("segment_id").innerText = chunk.index + " | " + chunk.uuid;
+    document.getElementById("segment_id").innerText = chunk.index + " | " + chunk.id;
+
+    // status info + color code
     let status = chunk.current_status.name;
+    let statusDiv = document.getElementById("current_status_div");
+    if (chunk.labels && chunk.labels.includes("bad sample"))
+	status = "bad sample";
+    if (status === "ok") 
+	statusDiv.style.borderColor = "lightgreen";
+    else if (status === "bad sample")
+	statusDiv.style.borderColor = "#ff5757";
+    else if (status === "skip")
+	statusDiv.style.borderColor = "orange";
+    else if (status === "unchecked")
+	statusDiv.style.borderColor = "lightgrey";
+    else 
+	statusDiv.style.borderColor = "none";
+	
     if (chunk.current_status.source)
         status += " (" + chunk.current_status.source + ")";
     if (chunk.current_status.timestamp)
-        status += " " + chunk.current_status.timestamp;
+        status += " | " + chunk.current_status.timestamp;
+    document.getElementById("current_status").innerText = status;
+
+    // comment
     if (chunk.comment)
         document.getElementById("comment").value = chunk.comment;
-    document.getElementById("current_status").innerText = status;
-    if (chunk.labels && chunk.labels.length > 0)
-        document.getElementById("labels").innerText = chunk.labels;
-    else
-        document.getElementById("labels").innerText = "none";
+
+    // labels => integrated as status
+    // if (chunk.labels && chunk.labels.length > 0)
+    //     document.getElementById("labels").innerText = chunk.labels;
+    // else
+    //     document.getElementById("labels").innerText = "none";
     setEnabled(true);
-    logMessage("client: Loaded segment " + chunk.uuid + " from server");
-    requestStats();
+    logMessage("Loaded segment " + chunk.id + " from server");
 }
 
 function displayStats(stats) {
+    logMessage("Received stats from server");
     let ele = document.getElementById("stats");
     ele.innerText = "";
     let keys = Object.keys(stats)
@@ -301,39 +341,31 @@ function displayStats(stats) {
         tr.appendChild(td2);
         ele.appendChild(tr);
     });
-
+    let timestamp = LIB.timestampYYYYMMDDHHMMSS();
+    document.getElementById("stats_timestamp").innerText = timestamp;
 }
 
-function requestStats() {
-    let request = {
-	'client_id': clientID,
-	'message_type': 'stats',
-    };
-    ws.send(JSON.stringify(request));
-}
-
-
-function releaseCurrentSegment() {
-    console.log("releaseCurrentSegment called")
+function unlockCurrentSegment() {
+    console.log("unlockCurrentSegment called")
     if (cachedSegment === undefined || cachedSegment === null)
         return;
 
     let request = {
 	'client_id': clientID,
-	'message_type': 'release',
+	'message_type': 'unlock',
 	'payload': JSON.stringify({
-	    'uuid': cachedSegment.uuid,
+	    'segment_id': cachedSegment.id,
 	    'user_name': document.getElementById("username").innerText,
 	}),
     };
     ws.send(JSON.stringify(request));
 }
 
-function releaseAll() {
-    console.log("releaseAll called")
+function unlockAll() {
+    console.log("unlockAll called")
     let request = {
 	'client_id': clientID,
-	'message_type': 'release_all',
+	'message_type': 'unlock_all',
 	'payload': JSON.stringify({
 	    'user_name': document.getElementById("username").innerText,
 	}),
@@ -351,49 +383,52 @@ function createQuery(stepSize) {
         step_size: stepSize,
         user_name: document.getElementById("username").innerText,
     }
-    if (context)
-        query.context = context;
+    if (gloptions.context && gloptions.context >= 0)
+        query.context = gloptions.context;
     if (cachedSegment && cachedSegment !== null)
-        query.curr_id = cachedSegment.uuid;
+        query.curr_id = cachedSegment.id;
 
     // search for status
-    if (document.getElementById("searchmode-ok").checked)
-        query.request_status = ["ok"];
-    else if (document.getElementById("searchmode-unchecked").checked)
-        query.request_status = ["unchecked"];
-    else if (document.getElementById("searchmode-checked").checked)
-        query.request_status = ["ok", "skip"];
+    query.request_status = document.querySelector('input[name="requeststatus"]:checked').value;
+    // if (document.getElementById("requeststatus-ok").checked)
+    //     query.request_status = ["ok"];
+    // else if (document.getElementById("requeststatus-unchecked").checked)
+    //     query.request_status = ["unchecked"];
+    // else if (document.getElementById("requeststatus-checked").checked)
+    //     query.request_status = ["ok", "skip"];
     return query;
 }
 
-function next(stepSize) {
-    console.log("next called")
-    releaseCurrentSegment();
-
-    let request = {
-	'client_id': clientID,
-	'message_type': 'next',
-	'payload': JSON.stringify(createQuery(stepSize)),
-    };
-    ws.send(JSON.stringify(request));
-}
+// function next(stepSize) {
+//     console.log("next called")
+//     let request = {
+//     	'client_id': clientID,
+//     	'message_type': 'next',
+//     	'payload': JSON.stringify(createQuery(stepSize)),
+//     };
+//     ws.send(JSON.stringify(request));
+// }
 
 
-function saveReleaseAndNext(options) {
-    console.log("saveReleaseAndNext called with options", options);
+function saveUnlockAndNext(options) {
+    console.log("saveUnlockAndNext called with options", options);
     let user = document.getElementById("username").innerText;
     if ((!user) || user === "") {
         let msg = "Username unset -- cannot save!";
         alert(msg);
-        logMessage(msg);
+        logError(msg);
         return;
     }
-    if (!cachedSegment.uuid) {
+    if (options.status && (!cachedSegment || !cachedSegment.id) ) {
         let msg = "No cached segment -- cannot save!";
         alert(msg);
-        logMessage(msg);
+        logError(msg);
         return;
     }
+    let unlock = {}
+    if (cachedSegment && cachedSegment.id)
+	unlock = {user_name: user, segment_id: cachedSegment.id };
+	
     let annotation = {};
     if (options.status) { // create annotation to save
         let status = {
@@ -412,7 +447,7 @@ function saveReleaseAndNext(options) {
             statusHistory.push(cachedSegment.current_status);
         let region = waveform.getRegion(0)
         annotation = {
-            uuid: cachedSegment.uuid,
+            id: cachedSegment.id,
             url: cachedSegment.url,
             segment_type: cachedSegment.segment_type,
             chunk: {
@@ -429,71 +464,93 @@ function saveReleaseAndNext(options) {
     
     let payload = {
         annotation: annotation,
-        release: { user_name: user, uuid: cachedSegment.uuid },
+        unlock: unlock,
         query: query,
     };
-    console.log("payload", JSON.stringify(payload));
+    //console.log("payload", JSON.stringify(payload));
 
     let request = {
 	'client_id': clientID,
-	'message_type': 'savereleaseandnext',
+	'message_type': 'saveunlockandnext',
 	'payload': JSON.stringify(payload),
     };
     ws.send(JSON.stringify(request));
-
 }
 
 
-window.addEventListener("load", function () {
+onload = function() {
 
     setEnabled(false);
+    clear();
 
     let params = new URLSearchParams(window.location.search);
-    if (params.get('username'))
-        document.getElementById("username").innerText = params.get('username');
+    if (params.get('username')) {
+	gloptions.userName = params.get('username');
+        document.getElementById("username").innerText = gloptions.userName;
+    }
     else {
         let msg = "Username unset! Reload page with URL param ?username=NAME";
         alert(msg);
-        logMessage(msg);
+        logError(msg);
         return;
     }
-    if (debugMode) {
-        if (params.get('context')) {
-            context = params.get('context');
-            document.getElementById("context").innerText = `${context} ms`;
-            document.getElementById("context-view").classList.remove("hidden");
-        }
-        if (params.get('searchmode')) {
-            let mode = params.get('searchmode');
-            if (document.getElementById(`searchmode-${mode}`))
-                document.getElementById(`searchmode-${mode}`).checked = true;
-        }
+    if (params.get('context')) {
+        gloptions.context = params.get('context');
+        document.getElementById("context").innerText = `${context} ms`;
+        document.getElementById("context-view").classList.remove("hidden");
+    }
+    if (params.get('requeststatus')) {
+        gloptions.requestStatus = params.get('requeststatus').toLowerCase();
+        if (document.getElementById(`requeststatus-${gloptions.requestStatus}`))
+            document.getElementById(`requeststatus-${gloptions.requestStatus}`).checked = true;
+	else {
+	    logError(`Invalid search mode: ${gloptions.requestStatus}`);
+	    gloptions.requestStatus = "Unchecked";
+	}
+    }
+    if (params.get('autoplay')) {
+        gloptions.autoplay = params.get('autoplay').toLowerCase();
+        if (document.getElementById(`autoplay-${gloptions.autoplay}`))
+            document.getElementById(`autoplay-${gloptions.autoplay}`).checked = true;
+	else {
+	    logError(`Invalid search mode: ${gloptions.autoplay}`);
+	    gloptions.autoplay = "None";
+	}
     }
 
+    console.log("gloptions", gloptions);
+    
     let url = wsBase + "/ws/"+clientID;
     ws = new WebSocket(url);
     ws.onopen = function() {
-	logMessage("Websocket open");
-	next(1);	
+	logMessage("Websocket opened");
+	saveUnlockAndNext({stepSize: 1});
     }
     ws.onmessage = function(evt) {
 	let resp = JSON.parse(evt.data);
-	//console.log(resp);
+	//console.log("ws.onmessage", resp);
 	if (resp.error) {
-	    logMessage("server error: " + resp.error);
+	    logError("Server error: " + resp.error);
 	    return;
 	}
 	if (resp.info) {
-	    logMessage("server info: " + resp.info);
-	    return;
+	    logMessage(resp.info);
 	}
 	if (resp.message_type === "stats") 
 	    displayStats(JSON.parse(resp.payload));
-	else if (resp.message_type === "audio_chunk") {
-	    displayAudioChunk(JSON.parse(resp.payload));
+	else if (resp.message_type === "explicit_unlock_completed") {
+	    cachedSegment = null;
+	    logMessage(JSON.parse(resp.payload));
 	}
- 	else if ( resp.message_type != "keep_alive" ) 
-	    console.log("unknown message from server", resp);
+	else if (resp.message_type === "no_audio_chunk") {
+	    let msg = JSON.parse(resp.payload);
+	    logMessage(msg);
+	    alert(msg);
+	}
+	else if (resp.message_type === "audio_chunk")
+	    displayAudioChunk(JSON.parse(resp.payload));
+ 	else if ( resp.info === "" && resp.message_type != "keep_alive" ) 
+	    logWarning("Unknown message from server: [" + resp.message_type + "] " + resp.payload);
     }
 
     console.log("main window loaded");
@@ -513,7 +570,7 @@ window.addEventListener("load", function () {
 
     //loadSegmentFromFile('tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260_00021.json');
 
-});
+};
 
 function loadKeyboardShortcuts() {
     let ele = document.getElementById("shortcuts");
@@ -545,14 +602,14 @@ function loadKeyboardShortcuts() {
 
 const shortcuts = {
     // 'ctrl ArrowLeft': { tooltip: 'ctrl left', funcDesc: 'Move left boundary to the left', func: function () { waveform.moveStartForRegionIndex(0, -5) } },
-    'ctrl ArrowLeft': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-left2left-short' },
-    'ctrl ArrowRight': { funcDesc: `Move left boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-left2right-short' },
-    'ctrl ArrowUp': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long' },
-    'ctrl ArrowDown': { funcDesc: `Move left boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-left2right-long' },
-    'shift ArrowLeft': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the left`, buttonID: 'move-right2left-short' },
-    'shift ArrowRight': { funcDesc: `Move right boundary ${boundaryMovementShort} ms to the right`, buttonID: 'move-right2right-short' },
-    'shift ArrowUp': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the left`, buttonID: 'move-right2left-long' },
-    'shift ArrowDown': { funcDesc: `Move right boundary ${boundaryMovementLong} ms to the right`, buttonID: 'move-right2right-long' },
+    'ctrl ArrowLeft': { funcDesc: `Move left boundary ${gloptions.boundaryMovementShort} ms to the left`, buttonID: 'move-left2left-short' },
+    'ctrl ArrowRight': { funcDesc: `Move left boundary ${gloptions.boundaryMovementShort} ms to the right`, buttonID: 'move-left2right-short' },
+    'ctrl ArrowUp': { funcDesc: `Move left boundary ${gloptions.boundaryMovementLong} ms to the left`, buttonID: 'move-left2left-long' },
+    'ctrl ArrowDown': { funcDesc: `Move left boundary ${gloptions.boundaryMovementLong} ms to the right`, buttonID: 'move-left2right-long' },
+    'shift ArrowLeft': { funcDesc: `Move right boundary ${gloptions.boundaryMovementShort} ms to the left`, buttonID: 'move-right2left-short' },
+    'shift ArrowRight': { funcDesc: `Move right boundary ${gloptions.boundaryMovementShort} ms to the right`, buttonID: 'move-right2right-short' },
+    'shift ArrowUp': { funcDesc: `Move right boundary ${gloptions.boundaryMovementLong} ms to the left`, buttonID: 'move-right2left-long' },
+    'shift ArrowDown': { funcDesc: `Move right boundary ${gloptions.boundaryMovementLong} ms to the right`, buttonID: 'move-right2right-long' },
     'ArrowLeft': { tooltip: 'left', funcDesc: 'Play left context', buttonID: 'play-left' },
     'ArrowRight': { tooltip: 'right', funcDesc: 'Play right context', buttonID: 'play-right' },
     'ArrowDown': { tooltip: 'down', funcDesc: 'Play all audio', buttonID: 'play-all' },

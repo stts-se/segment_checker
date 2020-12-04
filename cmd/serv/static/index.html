@@ -34,10 +34,9 @@
 					<span id='save-skip' class="btn" style="background-color:orange">skip</span>
 					<span id='save-ok' class="btn" style="background-color:lightgreen">save</span>
 				</div>
-				<div style="margin: 10px">
-					current status: <span id="current_status"></span>
-				<br/>
-					labels: <span id="labels"></span>
+				<div id="current_status_div" class="current_status_div">
+				    current status: <span class="nosmallcaps" id="current_status"></span>
+				    <!-- <br/> label: <span class="nosmallcaps" id="labels"></span> -->
 				</div>
 				<div style="margin: 10px">
 					<span id='save-badsample-next' class="btn" style="background-color:#ff5757">bs+next</span>
@@ -48,13 +47,13 @@
 				</div>
 				<div style="margin: 10px">
 					<span id="reset" class="btn" style="background-color:white">reset</span>
-					<span id="release-all" class="btn" style="background-color:lightgrey">release all</span>
+					<span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
 					<span id="quit" class="btn" style="background-color:yellow">quit</span>
-					<span style="cursor: default" class="btnlabel">play:</span><span id="play-all"
-						class="btn">all</span>
+
+					<span style="cursor: default" class="btnlabel">play:</span><span id="play-left" class="btn">left</span>
 					<span id="play-label" class="btn">label</span>
-					<span id="play-left" class="btn">left</span>
 					<span id="play-right" class="btn">right</span>
+					<span id="play-all" class="btn">all</span>
 				</div>
 				<div style="margin: 10px;" class="hidden">
 					<span id='move-left2left-short' class="btn">&lt;l</span>
@@ -70,7 +69,7 @@
 				<!-- 
 			 <div style="margin: 10px">
 			 <span id="reset" class="btn" style="background-color:white">reset</span>
-			 <span id="release-all" class="btn" style="background-color:lightgrey">release all</span>
+			 <span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
 			 <span id="quit" class="btn" style="background-color:yellow">quit</span>
 			 </div>
 		    -->
@@ -95,25 +94,26 @@
 
 			<div>user: <span class="nosmallcaps" id="username"></span> </div>
 				
-			<details><summary>options</summary>
+			<details open><summary>options</summary>
 				<div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
-				<!-- <div>autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
-		     <input type="radio" id="autoplay-left" name="autoplay"><label for="autoplay-left">Left</label>
-		     <input type="radio" id="autoplay-label" name="autoplay"><label for="autoplay-label">Label</label>
-		     <input type="radio" id="autoplay-right" name="autoplay"><label for="autoplay-right">Right</label> 
-		     <input type="radio" id="autoplay-all" name="autoplay"><label for="autoplay-all">All</label> 
-		     <input checked type="radio" id="autoplay-none" name="autoplay"><label for="autoplay-none">None</label> 
-		     </span> </div>
-		-->
-				<div>search mode: <span class="nosmallcaps" id="searchmode" style="vertical-align: middle">
-						<input checked type="radio" id="searchmode-unchecked" name="searchmode"><label
-							for="searchmode-unchecked">Unchecked</label>
-						<input type="radio" id="searchmode-checked" name="searchmode"><label
-							for="searchmode-checked">Checked</label>
-						<input type="radio" id="searchmode-ok" name="searchmode"><label
-							for="searchmode-ok">Ok</label>
-						<input type="radio" id="searchmode-any" name="searchmode"><label
-							for="searchmode-any">Any</label>
+
+				<div class="hidden">autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
+				    <input type="radio" id="autoplay-left" name="autoplay"><label for="autoplay-left">Left</label>
+				    <input type="radio" id="autoplay-label" name="autoplay"><label for="autoplay-label">Label</label>
+				    <input type="radio" id="autoplay-right" name="autoplay"><label for="autoplay-right">Right</label> 
+				    <input type="radio" id="autoplay-all" name="autoplay"><label for="autoplay-all">All</label> 
+				    <input checked type="radio" id="autoplay-none" name="autoplay"><label for="autoplay-none">None</label> 
+				</span> </div>
+				
+				<div>request status: <span class="nosmallcaps" id="requeststatus" style="vertical-align: middle">
+						<input checked type="radio" id="requeststatus-unchecked" name="requeststatus" value="unchecked"><label
+							for="requeststatus-unchecked">Unchecked</label>
+						<input type="radio" id="requeststatus-checked" name="requeststatus" value="checked"><label
+							for="requeststatus-checked">Checked</label>
+						<input type="radio" id="requeststatus-ok" name="requeststatus" value="ok"><label
+							for="requeststatus-ok">Ok</label>
+						<input type="radio" id="requeststatus-any" name="requeststatus" value="any"><label
+							for="requeststatus-any">Any</label>
 					</span>
 				</div>
 			</details>
@@ -142,7 +142,8 @@
 			</div>
 
 			<div style="margin-top: 20px; overflow-y: scroll; width: 700px">
-				stats <span class="btn icon noborder" id="load_stats" title="Click to reload stats">&#x21bb;</span>
+			    stats <span class="btn icon noborder" id="load_stats" title="Click to reload stats">&#x21bb;</span>
+			    <span id="stats_timestamp"></span>
 				<span class="nosmallcaps">
 					<table>
 						<!-- <thead><tr><th>Key</th><th>Action</th></tr></thead> -->

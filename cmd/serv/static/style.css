@@ -131,7 +131,7 @@ img.disabled {
 }
 
 .noborder {
-    border: none;
+    border: none !important;
 }
 
 .rounded-border {
@@ -147,4 +147,27 @@ body {
 
 summary:hover {
     cursor: pointer;
+}
+
+.current_status_div {
+    text-decoration: none;
+    /* background-color: transparent; */
+    background-image: none;
+    border-color: black;
+    border-radius: .25rem;
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    /* -webkit-user-select: none;
+       -moz-user-select: none;
+       -ms-user-select: none;
+       user-select: none; */
+    border: 3px solid transparent;
+    /* padding: .215rem .5rem; */
+    padding: .215rem .5rem .35rem .5rem;
+    font-size: 1rem;
+    border-radius: .25rem;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
