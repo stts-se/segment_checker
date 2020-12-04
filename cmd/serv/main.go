@@ -13,6 +13,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 
+	"github.com/rsc/getopt"
+
 	"github.com/stts-se/segment_checker/dbapi"
 	"github.com/stts-se/segment_checker/log"
 	"github.com/stts-se/segment_checker/modules"
@@ -428,14 +430,20 @@ func main() {
 	cmd := path.Base(os.Args[0])
 
 	// Flags
-	cfg.Host = flag.String("h", "localhost", "Server `host`")
-	cfg.Port = flag.String("p", "7371", "Server `port`")
+	cfg.Host = flag.String("host", "localhost", "Server `host`")
+	cfg.Port = flag.String("port", "7371", "Server `port`")
 	cfg.ServeDir = flag.String("serve", "static", "Serve static `folder`")
 	cfg.SourceDataDir = flag.String("source", "", "Source data `folder`")
 	cfg.AnnotationDataDir = flag.String("annotation", "", "Annotation data `folder`")
 
 	cfg.Debug = flag.Bool("debug", false, "Debug mode")
 	protocol := "http"
+
+	// Shorthand aliases
+	getopt.Aliases(
+		"h", "host",
+		"p", "port",
+	)
 
 	help := flag.Bool("help", false, "Print usage and exit")
 	flag.Parse()
@@ -446,7 +454,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s <options> <folder to serve>\n", cmd)
 		fmt.Fprintf(os.Stderr, "Options:\n")
-		flag.PrintDefaults()
+		getopt.PrintDefaults()
 	}
 
 	if *help {
