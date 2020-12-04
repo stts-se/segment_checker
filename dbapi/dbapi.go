@@ -265,7 +265,7 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 		}
 		if segment.UUID == query.CurrID {
 			seenCurrID = 0
-			log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v CURR!", i+1, seenCurrID, query.StepSize)
+			//log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v CURR!", i+1, seenCurrID, query.StepSize)
 		} else {
 			annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
 			var annotation protocol.AnnotationPayload
@@ -279,14 +279,14 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 				if err != nil {
 					return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
 				}
-				log.Debug("GetNextSegment annotation %v %#v", seenCurrID, annotation)
+				//log.Debug("GetNextSegment annotation %v %#v", seenCurrID, annotation)
 			} else {
 				annotation = protocol.AnnotationPayload{
 					SegmentPayload: segment,
 					CurrentStatus:  protocol.Status{Name: "unchecked"},
 				}
 			}
-			log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v status=%v", i+1, seenCurrID, query.StepSize, annotation.CurrentStatus.Name)
+			//log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v status=%v", i+1, seenCurrID, query.StepSize, annotation.CurrentStatus.Name)
 			if seenCurrID >= 0 && statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.UUID) {
 				seenCurrID++
 				if query.CurrID == "" || seenCurrID == abs(query.StepSize) {

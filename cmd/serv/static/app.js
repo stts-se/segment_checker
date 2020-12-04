@@ -1,6 +1,9 @@
 'use strict';
 
 const baseURL = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/$/g, "");
+const wsBase = baseURL.replace(/^http/, "ws");  
+const clientID = LIB.uuidv4();
+let ws;
 
 const boundaryMovementShort = 5;
 const boundaryMovementLong = 100;
@@ -110,15 +113,15 @@ document.getElementById("play-right").addEventListener("click", function (evt) {
 
 // document.getElementById("save-badsample").addEventListener("click", function (evt) {
 //     if (!evt.target.disabled)
-//         save({ status: "skip", label: "bad sample", callback: loadStats });
+//         save({ status: "skip", label: "bad sample", callback: requestStats });
 // });
 // document.getElementById("save-skip").addEventListener("click", function (evt) {
 //     if (!evt.target.disabled)
-//         save({ status: "skip", callback: loadStats });
+//         save({ status: "skip", callback: requestStats });
 // });
 // document.getElementById("save-ok").addEventListener("click", function (evt) {
 //     if (!evt.target.disabled)
-//         save({ status: "ok", callback: loadStats });
+//         save({ status: "ok", callback: requestStats });
 // });
 document.getElementById("save-badsample-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
@@ -162,7 +165,7 @@ document.getElementById("quit").addEventListener("click", function (evt) {
         document.getElementById("labels").innerText = "";
         document.getElementById("current_status").innerText = "";
         setEnabled(false);
-        loadStats();
+        //requestStats();
     }
 });
 
@@ -174,13 +177,13 @@ document.getElementById("release-all").addEventListener("click", function (evt) 
         document.getElementById("labels").innerText = "";
         document.getElementById("current_status").innerText = "";
         setEnabled(false);
-        loadStats();
+        //requestStats();
     }
 });
 
 document.getElementById("load_stats").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
-        loadStats();
+        requestStats();
 });
 
 document.getElementById("move-left2left-short").addEventListener("click", function (evt) {
@@ -249,129 +252,93 @@ document.getElementById("move-right2right-long").addEventListener("click", funct
     }
 });
 
-function loadStats() {
-    let url = baseURL + "/stats/";
+function displayAudioChunk(chunk) {
+    // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
+    let byteCharacters = atob(chunk.audio);
+    let byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    let byteArray = new Uint8Array(byteNumbers);
 
-    fetch(url,
-        {
-            method: "GET",
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            console.log(url, "=>", JSON.stringify(data));
+    cachedSegment = chunk;
+    cachedSegment.audio = null; // no need to cache the audio blob
+    console.log("res => cachedSegment", JSON.stringify(cachedSegment));
 
-            if (data.error) {
-                logMessage('server error: Got error from GET to ' + url + ": " + data.error);
-                //setEnabled(false);
-                return;
-            } else if (data.info) {
-                logMessage('server: ' + data.info);
-                return;
-
-            } else if (data.message_type === "stats") {
-                let ele = document.getElementById("stats");
-                ele.innerText = "";
-                const parsedJSON = JSON.parse(data.payload);
-                let keys = Object.keys(parsedJSON)
-                keys.sort();
-                keys.forEach(function (key) {
-                    let tr = document.createElement("tr");
-                    let td1 = document.createElement("td");
-                    let td2 = document.createElement("td");
-                    td2.style["text-align"] = "right";
-                    td1.innerHTML = key;
-                    td2.innerHTML = parsedJSON[key];
-                    tr.appendChild(td1);
-                    tr.appendChild(td2);
-                    ele.appendChild(tr);
-                });
-
-            } else {
-                logMessage('Unknown message type from server: ' + data.message_type);
-            }
-        })
-        .catch(function (error) {
-            logMessage('Request failed: ' + error);
-            //setEnabled(false);
-        });
+    let blob = new Blob([byteArray], { 'type': chunk.file_type });
+    loadAudioBlob(blob, chunk.chunk);
+    document.getElementById("segment_id").innerText = chunk.index + " | " + chunk.uuid;
+    let status = chunk.current_status.name;
+    if (chunk.current_status.source)
+        status += " (" + chunk.current_status.source + ")";
+    if (chunk.current_status.timestamp)
+        status += " " + chunk.current_status.timestamp;
+    if (chunk.comment)
+        document.getElementById("comment").value = chunk.comment;
+    document.getElementById("current_status").innerText = status;
+    if (chunk.labels && chunk.labels.length > 0)
+        document.getElementById("labels").innerText = chunk.labels;
+    else
+        document.getElementById("labels").innerText = "none";
+    setEnabled(true);
+    logMessage("client: Loaded segment " + chunk.uuid + " from server");
+    requestStats();
 }
+
+function displayStats(stats) {
+    let ele = document.getElementById("stats");
+    ele.innerText = "";
+    let keys = Object.keys(stats)
+    keys.sort();
+    keys.forEach(function (key) {
+        let tr = document.createElement("tr");
+        let td1 = document.createElement("td");
+        let td2 = document.createElement("td");
+        td2.style["text-align"] = "right";
+        td1.innerHTML = key;
+        td2.innerHTML = stats[key];
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        ele.appendChild(tr);
+    });
+
+}
+
+function requestStats() {
+    let request = {
+	'client_id': clientID,
+	'message_type': 'stats',
+    };
+    ws.send(JSON.stringify(request));
+}
+
 
 function releaseCurrentSegment() {
     console.log("releaseCurrentSegment called")
     if (cachedSegment === undefined || cachedSegment === null)
         return;
 
-    let url = baseURL + "/release/" + cachedSegment.uuid + "/" + document.getElementById("username").innerText;
-
-    fetch(url,
-        {
-            method: "GET",
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            console.log(url, "=>", JSON.stringify(data));
-
-            if (data.error) {
-                logMessage('server error: Got error from GET to ' + url + ": " + data.error);
-                setEnabled(false);
-                return;
-            } else if (data.info) {
-                logMessage('server: ' + data.info);
-                cachedSegment = null;
-                setEnabled(false);
-                return;
-
-            } else {
-                logMessage('Unknown message type from server: ' + data.message_type);
-            }
-        })
-        .catch(function (error) {
-            logMessage('Request failed: ' + error);
-            setEnabled(false);
-        });
-
+    let request = {
+	'client_id': clientID,
+	'message_type': 'release',
+	'payload': JSON.stringify({
+	    'uuid': cachedSegment.uuid,
+	    'user_name': document.getElementById("username").innerText,
+	}),
+    };
+    ws.send(JSON.stringify(request));
 }
 
 function releaseAll() {
-    let url = baseURL + "/releaseall/" + document.getElementById("username").innerText;
-
-    fetch(url,
-        {
-            method: "GET",
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            console.log(url, "=>", JSON.stringify(data));
-
-            if (data.error) {
-                logMessage('server error: Got error from GET to ' + url + ": " + data.error);
-                setEnabled(false);
-                return;
-            } else if (data.info) {
-                logMessage('server: ' + data.info);
-                return;
-
-            } else {
-                logMessage('Unknown message type from server: ' + data.message_type);
-            }
-        })
-        .catch(function (error) {
-            logMessage('Request failed: ' + error);
-            setEnabled(false);
-        });
-
+    console.log("releaseAll called")
+    let request = {
+	'client_id': clientID,
+	'message_type': 'release_all',
+	'payload': JSON.stringify({
+	    'user_name': document.getElementById("username").innerText,
+	}),
+    };
+    ws.send(JSON.stringify(request));
 }
 
 document.getElementById("clear_messages").addEventListener("click", function (evt) {
@@ -403,76 +370,12 @@ function next(stepSize) {
     console.log("next called")
     releaseCurrentSegment();
 
-    let url = baseURL + "/next/";
-    let query = createQuery(stepSize);
-
-    console.log("next URL", url, query);
-
-    fetch(url,
-        {
-            method: "POST",
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(query),
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            console.log(url, "=>", JSON.stringify(data));
-
-            if (data.error) {
-                logMessage('server error: Got error from GET to ' + url + ": " + data.error);
-                setEnabled(false);
-                return;
-            } else if (data.message_type === "audio_chunk") {
-                let res = JSON.parse(data.payload);
-
-                // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
-                let byteCharacters = atob(res.audio);
-                let byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                let byteArray = new Uint8Array(byteNumbers);
-
-                cachedSegment = res;
-                cachedSegment.audio = null; // no need to cache the audio blob
-                console.log("res => cachedSegment", JSON.stringify(cachedSegment));
-
-                let blob = new Blob([byteArray], { 'type': res.file_type });
-                loadAudioBlob(blob, res.chunk);
-                document.getElementById("segment_id").innerText = res.index + " | " + res.uuid;
-                let status = res.current_status.name;
-                if (res.current_status.source)
-                    status += " (" + res.current_status.source + ")";
-                if (res.current_status.timestamp)
-                    status += " " + res.current_status.timestamp;
-                if (res.comment)
-                    document.getElementById("comment").value = res.comment;
-                document.getElementById("current_status").innerText = status;
-                if (res.labels && res.labels.length > 0)
-                    document.getElementById("labels").innerText = res.labels;
-                else
-                    document.getElementById("labels").innerText = "none";
-                setEnabled(true);
-                logMessage("client: Loaded segment " + res.uuid + " from server");
-                loadStats();
-
-            } else if (data.info) {
-                logMessage('server: ' + data.info);
-                return;
-
-            } else {
-                logMessage('Unknown message type from server: ' + data.message_type);
-            }
-        })
-        .catch(function (error) {
-            console.log(error);
-            logMessage('Request failed: ' + error);
-            setEnabled(false);
-        });
-
+    let request = {
+	'client_id': clientID,
+	'message_type': 'next',
+	'payload': JSON.stringify(createQuery(stepSize)),
+    };
+    ws.send(JSON.stringify(request));
 }
 
 
@@ -523,7 +426,7 @@ function saveReleaseAndNext(options) {
         }
     }
     let query = createQuery(options.stepSize);
-    console.log("query", query);
+    
     let payload = {
         annotation: annotation,
         release: { user_name: user, uuid: cachedSegment.uuid },
@@ -531,75 +434,13 @@ function saveReleaseAndNext(options) {
     };
     console.log("payload", JSON.stringify(payload));
 
-    let url = baseURL + "/saveandmovetonext/";
+    let request = {
+	'client_id': clientID,
+	'message_type': 'savereleaseandnext',
+	'payload': JSON.stringify(payload),
+    };
+    ws.send(JSON.stringify(request));
 
-    fetch(url,
-        {
-            method: "POST",
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            console.log(url, "=>", JSON.stringify(data));
-
-            if (data.error) {
-                logMessage('server error: Got error from POST to ' + url + ": " + data.error);
-		setEnabled(false);
-                return;
-            }
-
-            if (data.info) {
-                logMessage('server: ' + data.info);
-                if (options.callback)
-                    options.callback();
-
-                return;
-            } else if (data.message_type === "audio_chunk") {
-                let res = JSON.parse(data.payload);
-
-                // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
-                let byteCharacters = atob(res.audio);
-                let byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                let byteArray = new Uint8Array(byteNumbers);
-
-                cachedSegment = res;
-                cachedSegment.audio = null; // no need to cache the audio blob
-                console.log("res => cachedSegment", JSON.stringify(cachedSegment));
-
-                let blob = new Blob([byteArray], { 'type': res.file_type });
-                loadAudioBlob(blob, res.chunk);
-                document.getElementById("segment_id").innerText = res.index + " | " + res.uuid;
-                let status = res.current_status.name;
-                if (res.current_status.source)
-                    status += " (" + res.current_status.source + ")";
-                if (res.current_status.timestamp)
-                    status += " " + res.current_status.timestamp;
-                if (res.comment)
-                    document.getElementById("comment").value = res.comment;
-                document.getElementById("current_status").innerText = status;
-                if (res.labels && res.labels.length > 0)
-                    document.getElementById("labels").innerText = res.labels;
-                else
-                    document.getElementById("labels").innerText = "none";
-                setEnabled(true);
-                logMessage("client: Loaded segment " + res.uuid + " from server");
-                loadStats();
-	    }
-            else {
-                logMessage('Unknown message type from server: ' + data.message_type);
-            }
-        })
-        .catch(function (error) {
-            logMessage('Request failed: ' + error);
-	    setEnabled(false);
-        });
 }
 
 
@@ -629,6 +470,32 @@ window.addEventListener("load", function () {
         }
     }
 
+    let url = wsBase + "/ws/"+clientID;
+    ws = new WebSocket(url);
+    ws.onopen = function() {
+	logMessage("Websocket open");
+	next(1);	
+    }
+    ws.onmessage = function(evt) {
+	let resp = JSON.parse(evt.data);
+	//console.log(resp);
+	if (resp.error) {
+	    logMessage("server error: " + resp.error);
+	    return;
+	}
+	if (resp.info) {
+	    logMessage("server info: " + resp.info);
+	    return;
+	}
+	if (resp.message_type === "stats") 
+	    displayStats(JSON.parse(resp.payload));
+	else if (resp.message_type === "audio_chunk") {
+	    displayAudioChunk(JSON.parse(resp.payload));
+	}
+ 	else if ( resp.message_type != "keep_alive" ) 
+	    console.log("unknown message from server", resp);
+    }
+
     console.log("main window loaded");
 
     loadKeyboardShortcuts();
@@ -643,8 +510,6 @@ window.addEventListener("load", function () {
     };
 
     waveform = new Waveform(options);
-
-    next(1);
 
     //loadSegmentFromFile('tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260_00021.json');
 
