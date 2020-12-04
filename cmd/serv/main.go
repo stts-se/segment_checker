@@ -123,7 +123,7 @@ func load(annotation protocol.AnnotationPayload, userName string, explicitContex
 		return
 	}
 	//log.Info("load output json: %s", string(msgJSON))
-	w.Header().Set("Content-Type", "application/json")
+	//w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "%s\n", string(msgJSON))
 }
 
@@ -149,12 +149,12 @@ func next(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("query %#v", query)
 	if query.UserName == "" {
-		msg := fmt.Sprintf("User name not provided")
+		msg := fmt.Sprintf("User name not provided for query")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
 	if query.StepSize == 0 {
-		msg := fmt.Sprintf("Step size not provided")
+		msg := fmt.Sprintf("Step size not provided for query")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
@@ -179,7 +179,7 @@ func release(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if userName == "" {
-		msg := fmt.Sprintf("User name not provided")
+		msg := fmt.Sprintf("User name not provided for unlock")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
@@ -206,7 +206,7 @@ func release(w http.ResponseWriter, r *http.Request) {
 func releaseAll(w http.ResponseWriter, r *http.Request) {
 	userName := getParam("username", r)
 	if userName == "" {
-		msg := fmt.Sprintf("User name not provided")
+		msg := fmt.Sprintf("User name not provided for unlock all")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
@@ -274,15 +274,15 @@ func saveAndMoveToNext(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		msg := Message{Info: fmt.Sprintf("Saved annotation for segment with id %s", payload.Annotation.UUID)}
-
-		msgJSON, err := json.Marshal(msg)
-		if err != nil {
-			msg := fmt.Sprintf("failed to marshal msg : %v", err)
-			httpError(w, msg, msg, http.StatusBadRequest)
-			return
-		}
-		fmt.Fprintf(w, "%s\n", string(msgJSON))
+		// TODO: Send msg over ws
+		// msg := Message{Info: fmt.Sprintf("Saved annotation for segment with id %s", payload.Annotation.UUID)}
+		// msgJSON, err := json.Marshal(msg)
+		// if err != nil {
+		// 	msg := fmt.Sprintf("failed to marshal msg : %v", err)
+		// 	httpError(w, msg, msg, http.StatusBadRequest)
+		// 	return
+		// }
+		//fmt.Fprintf(w, "%s\n", string(msgJSON))
 	}
 
 	// unlock entry
@@ -292,7 +292,7 @@ func saveAndMoveToNext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if payload.Release.UserName == "" {
-		msg := fmt.Sprintf("User name not provided")
+		msg := fmt.Sprintf("User name not provided for unlock")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
@@ -302,26 +302,25 @@ func saveAndMoveToNext(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
-	msg := Message{Info: fmt.Sprintf("Unlocked segment %s for user %s", payload.Release.UUID, payload.Release.UserName)}
-
-	msgJSON, err := json.Marshal(msg)
-	if err != nil {
-		msg := fmt.Sprintf("failed to marshal msg : %v", err)
-		httpError(w, msg, msg, http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, "%s\n", string(msgJSON))
+	// TODO: Send msg over ws
+	// msg := Message{Info: fmt.Sprintf("Unlocked segment %s for user %s", payload.Release.UUID, payload.Release.UserName)}
+	// msgJSON, err := json.Marshal(msg)
+	// if err != nil {
+	// 	msg := fmt.Sprintf("failed to marshal msg : %v", err)
+	// 	httpError(w, msg, msg, http.StatusInternalServerError)
+	// 	return
+	// }
+	//fmt.Fprintf(w, "%s\n", string(msgJSON))
 
 	// get next
 	query := payload.Query
 	if query.UserName == "" {
-		msg := fmt.Sprintf("User name not provided")
+		msg := fmt.Sprintf("User name not provided for query")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
 	if query.StepSize == 0 {
-		msg := fmt.Sprintf("Step size not provided")
+		msg := fmt.Sprintf("Step size not provided for query")
 		jsonError(w, msg, msg, http.StatusBadRequest)
 		return
 	}
@@ -491,10 +490,10 @@ func main() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
-	r.HandleFunc("/saveandmovetonext/", next).Methods("POST")
-	r.HandleFunc("/save/", save).Methods("POST")
+	r.HandleFunc("/saveandmovetonext/", saveAndMoveToNext).Methods("POST")
+	//r.HandleFunc("/save/", save).Methods("POST")
 	r.HandleFunc("/next/", next).Methods("POST")
-	r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
+	//r.HandleFunc("/release/{uuid}/{username}", release).Methods("GET")
 	r.HandleFunc("/releaseall/{username}", releaseAll).Methods("GET")
 	r.HandleFunc("/stats/", stats).Methods("GET")
 	r.HandleFunc("/doc/", generateDoc).Methods("GET")

@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/stts-se/segment_checker/log"
 	"github.com/stts-se/segment_checker/protocol"
 )
 
@@ -124,6 +126,7 @@ func (api *DBAPI) Locked(uuid string) bool {
 }
 
 func (api *DBAPI) Lock(uuid, user string) error {
+	log.Info("dbapi.Lock %s %s", uuid, user)
 	api.lockMutex.Lock()
 	defer api.lockMutex.Unlock()
 	lockedBy, exists := api.lockMap[uuid]
@@ -217,25 +220,32 @@ func abs(i int64) int64 {
 func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (protocol.AnnotationPayload, error) {
 	api.fileMutex.RLock()
 	defer api.fileMutex.RUnlock()
-	files, err := ioutil.ReadDir(api.SourceDataDir)
-	if err != nil {
-		return protocol.AnnotationPayload{}, fmt.Errorf("couldn't list files in folder %s : %v", api.SourceDataDir, err)
-	}
+	var files []string
+	filepath.Walk(api.SourceDataDir, func(path string, f os.FileInfo, _ error) error {
+		if !f.IsDir() {
+			if filepath.Ext(f.Name()) == ".json" {
+				files = append(files, f.Name())
+			}
+		}
+		return nil
+	})
+	// files, err := ioutil.ReadDir(api.SourceDataDir)
+	// if err != nil {
+	// 	return protocol.AnnotationPayload{}, fmt.Errorf("couldn't list files in folder %s : %v", api.SourceDataDir, err)
+	// }
 	currIndex := 0
 	for i, sourceFile := range files {
-		if strings.HasSuffix(sourceFile.Name(), ".json") {
-			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile.Name()))
-			if err != nil {
-				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile.Name(), err)
-			}
-			var segment protocol.SegmentPayload
-			err = json.Unmarshal(bts, &segment)
-			if err != nil {
-				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile.Name(), err)
-			}
-			if segment.UUID == query.CurrID {
-				currIndex = i
-			}
+		bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile))
+		if err != nil {
+			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile, err)
+		}
+		var segment protocol.SegmentPayload
+		err = json.Unmarshal(bts, &segment)
+		if err != nil {
+			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile, err)
+		}
+		if segment.UUID == query.CurrID {
+			currIndex = i
 		}
 	}
 	seenCurrID := int64(-1)
@@ -244,49 +254,47 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 	}
 	for i := currIndex; i >= 0 && i < len(files); {
 		sourceFile := files[i]
-		if strings.HasSuffix(sourceFile.Name(), ".json") {
-			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile.Name()))
-			if err != nil {
-				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile.Name(), err)
-			}
-			var segment protocol.SegmentPayload
-			err = json.Unmarshal(bts, &segment)
-			if err != nil {
-				return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile.Name(), err)
-			}
-			if segment.UUID == query.CurrID {
-				seenCurrID = 0
-				//log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v CURR!", i+1, seenCurrID, query.StepSize)
-			} else {
-				annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
-				var annotation protocol.AnnotationPayload
-				_, err = os.Stat(annotationFile)
-				if err == nil {
-					bts, err = ioutil.ReadFile(annotationFile)
-					if err != nil {
-						return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", annotationFile, err)
-					}
-					err = json.Unmarshal(bts, &annotation)
-					if err != nil {
-						return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
-					}
-					//log.Debug("GetNextSegment annotation %v %#v", seenCurrID, annotation)
-				} else {
-					annotation = protocol.AnnotationPayload{
-						SegmentPayload: segment,
-						CurrentStatus:  protocol.Status{Name: "unchecked"},
-					}
+		bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile))
+		if err != nil {
+			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile, err)
+		}
+		var segment protocol.SegmentPayload
+		err = json.Unmarshal(bts, &segment)
+		if err != nil {
+			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile, err)
+		}
+		if segment.UUID == query.CurrID {
+			seenCurrID = 0
+			log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v CURR!", i+1, seenCurrID, query.StepSize)
+		} else {
+			annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.UUID))
+			var annotation protocol.AnnotationPayload
+			_, err = os.Stat(annotationFile)
+			if err == nil {
+				bts, err = ioutil.ReadFile(annotationFile)
+				if err != nil {
+					return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", annotationFile, err)
 				}
-				//log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v status=%v", i+1, seenCurrID, query.StepSize, annotation.CurrentStatus.Name)
-				if seenCurrID >= 0 && statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.UUID) {
-					seenCurrID++
-					if query.CurrID == "" || seenCurrID == abs(query.StepSize) {
-						if lockOnLoad {
-							api.Lock(annotation.UUID, query.UserName)
-						}
-						annotation.Index = int64(i + 1)
-						return annotation, nil
+				err = json.Unmarshal(bts, &annotation)
+				if err != nil {
+					return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
+				}
+				log.Debug("GetNextSegment annotation %v %#v", seenCurrID, annotation)
+			} else {
+				annotation = protocol.AnnotationPayload{
+					SegmentPayload: segment,
+					CurrentStatus:  protocol.Status{Name: "unchecked"},
+				}
+			}
+			log.Debug("GetNextSegment index=%v seenCurrID=%v stepSize=%v status=%v", i+1, seenCurrID, query.StepSize, annotation.CurrentStatus.Name)
+			if seenCurrID >= 0 && statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.UUID) {
+				seenCurrID++
+				if query.CurrID == "" || seenCurrID == abs(query.StepSize) {
+					if lockOnLoad {
+						api.Lock(annotation.UUID, query.UserName)
 					}
+					annotation.Index = int64(i + 1)
+					return annotation, nil
 				}
 			}
 		}

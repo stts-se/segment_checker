@@ -16,8 +16,11 @@ let cachedSegment;
 let debugVar;
 
 function logMessage(msg) {
+    debugVar = msg;
     let div = document.createElement("div");
     div.innerText = msg;
+    if (msg.toLowerCase().includes("error"))
+	div.style["color"] = "red";
     messages.prepend(div);
 }
 
@@ -474,7 +477,7 @@ function next(stepSize) {
 
 
 function saveReleaseAndNext(options) {
-    console.log("save called with options", options);
+    console.log("saveReleaseAndNext called with options", options);
     let user = document.getElementById("username").innerText;
     if ((!user) || user === "") {
         let msg = "Username unset -- cannot save!";
@@ -545,6 +548,7 @@ function saveReleaseAndNext(options) {
 
             if (data.error) {
                 logMessage('server error: Got error from POST to ' + url + ": " + data.error);
+		setEnabled(false);
                 return;
             }
 
@@ -554,99 +558,50 @@ function saveReleaseAndNext(options) {
                     options.callback();
 
                 return;
-            }
+            } else if (data.message_type === "audio_chunk") {
+                let res = JSON.parse(data.payload);
 
+                // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
+                let byteCharacters = atob(res.audio);
+                let byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                let byteArray = new Uint8Array(byteNumbers);
+
+                cachedSegment = res;
+                cachedSegment.audio = null; // no need to cache the audio blob
+                console.log("res => cachedSegment", JSON.stringify(cachedSegment));
+
+                let blob = new Blob([byteArray], { 'type': res.file_type });
+                loadAudioBlob(blob, res.chunk);
+                document.getElementById("segment_id").innerText = res.index + " | " + res.uuid;
+                let status = res.current_status.name;
+                if (res.current_status.source)
+                    status += " (" + res.current_status.source + ")";
+                if (res.current_status.timestamp)
+                    status += " " + res.current_status.timestamp;
+                if (res.comment)
+                    document.getElementById("comment").value = res.comment;
+                document.getElementById("current_status").innerText = status;
+                if (res.labels && res.labels.length > 0)
+                    document.getElementById("labels").innerText = res.labels;
+                else
+                    document.getElementById("labels").innerText = "none";
+                setEnabled(true);
+                logMessage("client: Loaded segment " + res.uuid + " from server");
+                loadStats();
+	    }
             else {
                 logMessage('Unknown message type from server: ' + data.message_type);
             }
         })
         .catch(function (error) {
             logMessage('Request failed: ' + error);
+	    setEnabled(false);
         });
 }
 
-function save(options) {
-    console.log("save called with options", options);
-    let user = document.getElementById("username").innerText;
-    if ((!user) || user === "") {
-        let msg = "Username unset -- cannot save!";
-        alert(msg);
-        logMessage(msg);
-        return;
-    }
-    if (!cachedSegment.uuid) {
-        let msg = "No cached segment -- cannot save!";
-        alert(msg);
-        logMessage(msg);
-        return;
-    }
-    let status = {
-        source: user,
-        name: options.status,
-        timestamp: new Date().toUTCString(),
-    }
-    let labels = [];
-    if (options.label) {
-        labels.push(options.label);
-    }
-    let statusHistory = cachedSegment.status_history;
-    if (!statusHistory)
-        statusHistory = [];
-    if (cachedSegment.current_status.name !== "unchecked")
-        statusHistory.push(cachedSegment.current_status);
-    let region = waveform.getRegion(0)
-    let payload = {
-        uuid: cachedSegment.uuid,
-        url: cachedSegment.url,
-        segment_type: cachedSegment.segment_type,
-        chunk: {
-            start: region.start + cachedSegment.offset,
-            end: region.end + cachedSegment.offset,
-        },
-        current_status: status,
-        status_history: statusHistory,
-        labels: labels,
-        comment: document.getElementById("comment").value,
-    }
-    console.log("payload", JSON.stringify(payload));
-
-    let url = baseURL + "/save/";
-
-    fetch(url,
-        {
-            method: "POST",
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            console.log(url, "=>", JSON.stringify(data));
-
-            if (data.error) {
-                logMessage('server error: Got error from POST to ' + url + ": " + data.error);
-                return;
-            }
-
-            if (data.info) {
-                logMessage('server: ' + data.info);
-                if (options.callback)
-                    options.callback();
-
-                return;
-            }
-
-            else {
-                logMessage('Unknown message type from server: ' + data.message_type);
-            }
-        })
-        .catch(function (error) {
-            logMessage('Request failed: ' + error);
-        });
-
-}
 
 window.addEventListener("load", function () {
 
@@ -739,7 +694,8 @@ const shortcuts = {
     ' ': { tooltip: 'space', funcDesc: 'Play label', buttonID: 'play-label' },
     'ctrl  ': { buttonID: 'play-label' }, // hidden from shortcut view
     'shift  ': { buttonID: 'play-label' }, // hidden from shortcut view
-    //'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment" },
+    'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment" },
+    'p': { tooltip: 'p', buttonID: 'prev', funcDesc: "Get previous segment" },
     'o': { buttonID: 'save-ok-next', funcDesc: "Save as ok and get next" },
     's': { buttonID: 'save-skip-next', funcDesc: "Save as skip and get next" },
     'b': { buttonID: 'save-badsample-next', funcDesc: "Save as skip with label 'bad sample', and get next" },
