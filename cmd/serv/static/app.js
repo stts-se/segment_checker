@@ -145,6 +145,18 @@ document.getElementById("save-ok-next").addEventListener("click", function (evt)
         saveUnlockAndNext({ status: "ok", stepSize: 1 });
 });
 
+if (document.getElementById("first")) {
+    document.getElementById("first").addEventListener("click", function (evt) {
+        if (!evt.target.disabled)
+            saveUnlockAndNext({ requestIndex: "first" });
+    });
+}
+if (document.getElementById("last")) {
+    document.getElementById("last").addEventListener("click", function (evt) {
+        if (!evt.target.disabled)
+            saveUnlockAndNext({ requestIndex: "last" });
+    });
+}
 if (document.getElementById("next")) {
     document.getElementById("next").addEventListener("click", function (evt) {
         if (!evt.target.disabled)
@@ -378,11 +390,14 @@ document.getElementById("clear_messages").addEventListener("click", function (ev
 });
 
 
-function createQuery(stepSize) {
+function createQuery(stepSize, requestIndex) {
     let query = {
-        step_size: stepSize,
         user_name: document.getElementById("username").innerText,
     }
+    if (stepSize)
+	query.step_size = stepSize;
+    if (requestIndex)
+	query.request_index = requestIndex;
     if (gloptions.context && gloptions.context >= 0)
         query.context = gloptions.context;
     if (cachedSegment && cachedSegment !== null)
@@ -458,9 +473,10 @@ function saveUnlockAndNext(options) {
             status_history: statusHistory,
             labels: labels,
             comment: document.getElementById("comment").value,
+	    index: cachedSegment.index,
         }
     }
-    let query = createQuery(options.stepSize);
+    let query = createQuery(options.stepSize, options.requestIndex);
     
     let payload = {
         annotation: annotation,
@@ -616,14 +632,17 @@ const shortcuts = {
     ' ': { tooltip: 'space', funcDesc: 'Play label', buttonID: 'play-label' },
     'ctrl  ': { buttonID: 'play-label' }, // hidden from shortcut view
     'shift  ': { buttonID: 'play-label' }, // hidden from shortcut view
-    'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment" },
-    'p': { tooltip: 'p', buttonID: 'prev', funcDesc: "Get previous segment" },
+    // 'n': { tooltip: 'n', buttonID: 'next', funcDesc: "Get next segment" },
+    // 'p': { tooltip: 'p', buttonID: 'prev', funcDesc: "Get previous segment" },
     'o': { buttonID: 'save-ok-next', funcDesc: "Save as ok and get next" },
     's': { buttonID: 'save-skip-next', funcDesc: "Save as skip and get next" },
     'b': { buttonID: 'save-badsample-next', funcDesc: "Save as skip with label 'bad sample', and get next" },
 };
 
 window.addEventListener("keydown", function (evt) {
+    console.log(evt.which);
+    if (document.activeElement.tagName.toLowerCase() === "textarea")
+	return;
     let key = evt.key;
     if (evt.altKey)
         key = "alt " + key;

@@ -80,6 +80,7 @@ type QueryPayload struct {
 	UserName      string `json:"user_name"`
 	RequestStatus string `json:"request_status"`
 	StepSize      int64  `json:"step_size"`
+	RequestIndex  string `json:"request_index"`
 	CurrID        string `json:"curr_id"`
 	Context       int64  `json:"context,omitempty"`
 }

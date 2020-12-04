@@ -42,62 +42,64 @@
 					<span id='save-badsample-next' class="btn" style="background-color:#ff5757">bs+next</span>
 					<span id='save-skip-next' class="btn" style="background-color:orange">skip+next</span>
 					<span id='save-ok-next' class="btn" style="background-color:lightgreen">save+next</span>
-					<span id="prev" class='btn icon'>&laquo;</span>
-					<span id="next" class='btn icon'>&raquo;</span>
+					<span id="first" title="Go to first" class='btn icon'>|&laquo;</span>
+					<span id="prev" title="Go to previous" class='btn icon'>&laquo;</span>
+					<span id="next" title="Go to next" class='btn icon'>&raquo;</span>
+					<span id="last" title="Go to last" class='btn icon'>&raquo;|</span>
 				</div>
 				<div style="margin: 10px">
-					<span id="reset" class="btn" style="background-color:white">reset</span>
-					<span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
-					<span id="quit" class="btn" style="background-color:yellow">quit</span>
+				    <span id="reset" class="btn" style="background-color:white">reset</span>
+				    <span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
+				    <span id="quit" class="btn" style="background-color:yellow">quit</span>
 
-					<span style="cursor: default" class="btnlabel">play:</span><span id="play-left" class="btn">left</span>
-					<span id="play-label" class="btn">label</span>
-					<span id="play-right" class="btn">right</span>
-					<span id="play-all" class="btn">all</span>
+				    <span style="cursor: default" class="btnlabel">play:</span><span id="play-left" class="btn">left</span>
+				    <span id="play-label" class="btn">label</span>
+				    <span id="play-right" class="btn">right</span>
+				    <span id="play-all" class="btn">all</span>
 				</div>
 				<div style="margin: 10px;" class="hidden">
-					<span id='move-left2left-short' class="btn">&lt;l</span>
-					<span id='move-left2right-short' class="btn">l&gt;</span>
-					<span id='move-right2left-short' class="btn">&lt;r</span>
-					<span id='move-right2right-short' class="btn">r&gt;</span>
-					<span id='move-left2left-long' class="btn">&laquo;l</span>
-					<span id='move-left2right-long' class="btn">l&raquo;</span>
-					<span id='move-right2left-long' class="btn">&laquo;r</span>
-					<span id='move-right2right-long' class="btn">r&raquo;</span>
+				    <span id='move-left2left-short' class="btn">&lt;l</span>
+				    <span id='move-left2right-short' class="btn">l&gt;</span>
+				    <span id='move-right2left-short' class="btn">&lt;r</span>
+				    <span id='move-right2right-short' class="btn">r&gt;</span>
+				    <span id='move-left2left-long' class="btn">&laquo;l</span>
+				    <span id='move-left2right-long' class="btn">l&raquo;</span>
+				    <span id='move-right2left-long' class="btn">&laquo;r</span>
+				    <span id='move-right2right-long' class="btn">r&raquo;</span>
 				</div>
 
 				<!-- 
-			 <div style="margin: 10px">
-			 <span id="reset" class="btn" style="background-color:white">reset</span>
-			 <span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
-			 <span id="quit" class="btn" style="background-color:yellow">quit</span>
-			 </div>
-		    -->
+				     <div style="margin: 10px">
+				     <span id="reset" class="btn" style="background-color:white">reset</span>
+				     <span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
+				     <span id="quit" class="btn" style="background-color:yellow">quit</span>
+				     </div>
+				-->
 			</div>
 
 			<div class="smallcaps" style="padding: 10px">comment<br />
-				<textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment"
-					rows="4"></textarea>
+			    <textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment"
+					     rows="4"></textarea>
 			</div>
 
 			<div style="padding: 10px; margin-top: 40px" class="nosmallcaps">
-				<em>
-					Developed by <a href="https://stts.se">STTS</a> on behalf of <a
-						href="https://www.speech.kth.se">TMH</a> &#183;
-					<a href="https://github.com/stts-se/segment_checker">github.com/stts-se/segment_checker</a>
-				</em>
+			    <em>
+				Developed by <a href="https://stts.se">STTS</a> on behalf of <a
+												 href="https://www.speech.kth.se">TMH</a> &#183;
+				<a href="https://github.com/stts-se/segment_checker">github.com/stts-se/segment_checker</a>
+			    </em>
 			</div>
 
 		</div>
 
 		<div class="grid-rightpanel smallcaps">
 
-			<div>user: <span class="nosmallcaps" id="username"></span> </div>
-				
-			<details open><summary>options</summary>
-				<div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
+		    <div>user: <span class="nosmallcaps" id="username"></span> </div>
+		    
+		    <details open><summary>options</summary>
+			<div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
 
-				<div class="hidden">autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
+			<div class="hidden">autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
 				    <input type="radio" id="autoplay-left" name="autoplay"><label for="autoplay-left">Left</label>
 				    <input type="radio" id="autoplay-label" name="autoplay"><label for="autoplay-label">Label</label>
 				    <input type="radio" id="autoplay-right" name="autoplay"><label for="autoplay-right">Right</label> 

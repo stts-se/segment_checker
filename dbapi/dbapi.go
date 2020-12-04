@@ -224,6 +224,42 @@ func abs(i int64) int64 {
 	return -i
 }
 
+func (api *DBAPI) annotationFromSegment(segment protocol.SegmentPayload) (protocol.AnnotationPayload, error) {
+	var err error
+	annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.ID))
+	var annotation protocol.AnnotationPayload
+	_, err = os.Stat(annotationFile)
+	if err == nil {
+		bts, err := ioutil.ReadFile(annotationFile)
+		if err != nil {
+			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", annotationFile, err)
+		}
+		err = json.Unmarshal(bts, &annotation)
+		if err != nil {
+			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
+		}
+	} else {
+		annotation = protocol.AnnotationPayload{
+			SegmentPayload: segment,
+			CurrentStatus:  protocol.Status{Name: "unchecked"},
+		}
+	}
+	return annotation, nil
+}
+
+func (api *DBAPI) segmentFromSource(sourceFile string) (protocol.SegmentPayload, error) {
+	bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile))
+	if err != nil {
+		return protocol.SegmentPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile, err)
+	}
+	var segment protocol.SegmentPayload
+	err = json.Unmarshal(bts, &segment)
+	if err != nil {
+		return protocol.SegmentPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile, err)
+	}
+	return segment, nil
+}
+
 func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (protocol.AnnotationPayload, bool, error) {
 	api.fileMutex.RLock()
 	defer api.fileMutex.RUnlock()
@@ -241,9 +277,36 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 		}
 		return nil
 	})
+	if len(files) == 0 {
+		return protocol.AnnotationPayload{}, false, fmt.Errorf("no source files found in folder %s", api.SourceDataDir)
+	}
+	log.Info("Loaded %d source data files", len(files))
 	var currIndex int
 	var seenCurrID int64
-	if query.CurrID != "" {
+	if query.RequestIndex != "" {
+		var i int
+		if query.RequestIndex == "first" {
+			i = 0
+		} else if query.RequestIndex == "last" {
+			i = len(files) - 1
+		} else {
+			return protocol.AnnotationPayload{}, false, fmt.Errorf("unknown request index: %s", query.RequestIndex)
+		}
+		sourceFile := files[i]
+		segment, err := api.segmentFromSource(sourceFile)
+		if err != nil {
+			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create segment from source file %s : %v", sourceFile, err)
+		}
+		annotation, err := api.annotationFromSegment(segment)
+		if err != nil {
+			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create annotation from source file %s : %v", sourceFile, err)
+		}
+		if lockOnLoad {
+			api.Lock(annotation.ID, query.UserName)
+		}
+		annotation.Index = int64(i + 1)
+		return annotation, true, nil
+	} else if query.CurrID != "" {
 		seenCurrID = int64(-1)
 		for i, sourceFile := range files {
 			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile))
@@ -265,41 +328,20 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 	}
 	for i := currIndex; i >= 0 && i < len(files); {
 		sourceFile := files[i]
-		bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile))
+		segment, err := api.segmentFromSource(sourceFile)
 		if err != nil {
-			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't read file %s : %v", sourceFile, err)
+			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create segment from source file %s : %v", sourceFile, err)
 		}
-		var segment protocol.SegmentPayload
-		err = json.Unmarshal(bts, &segment)
-		if err != nil {
-			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile, err)
-		}
+
 		if seenCurrID < 0 && segment.ID == query.CurrID {
 			seenCurrID = 0
 			if debug {
 				log.Debug("GetNextSegment index=%v seenCurrID=%v segment.ID=%v stepSize=%v CURR!", i+1, seenCurrID, segment.ID, query.StepSize)
 			}
 		} else {
-			annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.ID))
-			var annotation protocol.AnnotationPayload
-			_, err = os.Stat(annotationFile)
-			if err == nil {
-				bts, err = ioutil.ReadFile(annotationFile)
-				if err != nil {
-					return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't read file %s : %v", annotationFile, err)
-				}
-				err = json.Unmarshal(bts, &annotation)
-				if err != nil {
-					return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
-				}
-				// if debug {
-				// 	log.Debug("GetNextSegment annotation %v %#v", seenCurrID, annotation)
-				// }
-			} else {
-				annotation = protocol.AnnotationPayload{
-					SegmentPayload: segment,
-					CurrentStatus:  protocol.Status{Name: "unchecked"},
-				}
+			annotation, err := api.annotationFromSegment(segment)
+			if err != nil {
+				return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create annotation from source file %s : %v", sourceFile, err)
 			}
 			if debug {
 				log.Debug("GetNextSegment index=%v seenCurrID=%v segment.ID=%v stepSize=%v status=%v", i+1, seenCurrID, segment.ID, query.StepSize, annotation.CurrentStatus.Name)

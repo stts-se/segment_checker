@@ -279,7 +279,7 @@ var contextMap = map[string]int64{
 
 const fallbackContext = int64(1000)
 
-func load(conn *websocket.Conn, annotation protocol.AnnotationPayload, userName string, explicitContext int64) {
+func load(conn *websocket.Conn, annotation protocol.AnnotationPayload, explicitContext int64) {
 	var context int64
 	if explicitContext > 0 {
 		context = explicitContext
@@ -323,6 +323,8 @@ func saveUnlockAndNext(conn *websocket.Conn, payload AnnotationUnlockAndQueryPay
 
 	log.Info("saveUnlockAndNext | %#v", payload)
 
+	var savedAnnotation protocol.AnnotationPayload
+
 	// save annotation
 	if payload.Annotation.ID != "" {
 		err = db.Save(payload.Annotation)
@@ -331,8 +333,10 @@ func saveUnlockAndNext(conn *websocket.Conn, payload AnnotationUnlockAndQueryPay
 			wsError(conn, msg, msg)
 			return
 		}
+		log.Info("Saved annotation %#v", payload.Annotation)
 		msg := fmt.Sprintf("Saved annotation for segment with id %s", payload.Annotation.ID)
 		wsInfo(conn, msg)
+		savedAnnotation = payload.Annotation
 	}
 
 	// get next
@@ -342,29 +346,37 @@ func saveUnlockAndNext(conn *websocket.Conn, payload AnnotationUnlockAndQueryPay
 		wsError(conn, msg, msg)
 		return
 	}
-	if query.StepSize == 0 {
-		msg := fmt.Sprintf("Step size not provided for query")
+	if query.StepSize == 0 && query.RequestIndex == "" {
+		msg := fmt.Sprintf("Neither step size nor request index was provided for query")
 		wsError(conn, msg, msg)
 		return
 	}
 	if query.CurrID == "undefined" {
 		query.CurrID = ""
 	}
-	sourceFile, found, err := db.GetNextSegment(query, true)
+	segment, found, err := db.GetNextSegment(query, true)
 	if err != nil {
 		msg := fmt.Sprintf("%v", err)
 		wsError(conn, msg, msg)
 		return
 	}
 	if found {
-		load(conn, sourceFile, query.UserName, query.Context)
+		load(conn, segment, query.Context)
 	} else {
-		direction := "next"
-		if query.StepSize < 0 {
-			direction = "previous"
+		if query.RequestIndex != "" {
+			msg := fmt.Sprintf("Couldn't go to %s segment", query.RequestIndex)
+			wsPayload(conn, "no_audio_chunk", msg)
+		} else {
+			direction := "next"
+			if query.StepSize < 0 {
+				direction = "previous"
+			}
+			msg := fmt.Sprintf("Couldn't find any %s segments matching request status: %v", direction, query.RequestStatus)
+			wsPayload(conn, "no_audio_chunk", msg)
 		}
-		msg := fmt.Sprintf("Couldn't find any %s segments matching request status: %v", direction, query.RequestStatus)
-		wsPayload(conn, "no_audio_chunk", msg)
+		if savedAnnotation.ID != "" {
+			load(conn, savedAnnotation, query.Context)
+		}
 		return
 	}
 
