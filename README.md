@@ -7,17 +7,15 @@ Tool for revising segment boundaries. Developed by [STTS](https://stts.se) on be
 
 * manually adjust segment boundaries, one chunk at a time
 * play buttons for left context/right context/segment only/all
-* mark with status "SKIP" or "OK"
-* optional label "Bad sample"
-* one free text comment is allowed
-* include username + timestamp in status?
-* navigate to next, prev, first, last
-* navigation goes to next disregarding status, or next unchecked? prev unchecked or just previously checked? or both?
-* audio sample to display is max 5 seconds total (usually less)
-* default values for left/right context length:
-  - 200ms for vowel segments
-  - 1s for silence 
-* left/right context length should be configurable
+* save with status "SKIP" or "OK", and optional label "Bad sample"
+* one free text comment can be added per segment
+* navigation to next, prev, first, last given the specified request status (for now: unchecked, checked, ok, any)
+* audio sample to display is expected to be max 5 seconds total (usually less)
+* default values for left/right context (hardwired on server)
+  - e: 200ms
+  - silence: 1000ms
+  - else: 1000ms
+* for advanced users, left/right context length can be configured
 * no zoom possibility for now
 
 ## Licenses
