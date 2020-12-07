@@ -1,13 +1,13 @@
 'use strict';
 
 const baseURL = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/$/g, "");
-const wsBase = baseURL.replace(/^http/, "ws");  
+const wsBase = baseURL.replace(/^http/, "ws");
 const clientID = LIB.uuidv4();
 let ws;
 
 let gloptions = {
-    boundaryMovementShort : 5,
-    boundaryMovementLong : 100,
+    boundaryMovementShort: 5,
+    boundaryMovementLong: 100,
     requestStatus: "Unchecked",
     autoplay: "None",
     //context: -1,
@@ -95,16 +95,16 @@ function autoplay() {
 
 async function loadAudioBlob(url, chunk) {
     waveform.loadAudioBlob(url, [chunk]);
-	// waveform.wavesurfer.on("region-created", function (region) {
+    // waveform.wavesurfer.on("region-created", function (region) {
     //     autoplay();
-	// });
+    // });
 }
 
 function loadAudioURL(url, chunk) {
     waveform.loadAudioURL(url, [chunk]);
     // waveform.wavesurfer.on("region-created", function (region) {
     //     autoplay();
-	// });
+    // });
 }
 
 document.getElementById("play-all").addEventListener("click", function (evt) {
@@ -176,7 +176,7 @@ if (document.getElementById("prev")) {
 
 function clear() {
     if (waveform)
-	waveform.clear();
+        waveform.clear();
     document.getElementById("comment").value = "";
     //document.getElementById("labels").innerText = "";
     document.getElementById("current_status").innerText = "";
@@ -188,9 +188,9 @@ function clear() {
 document.getElementById("reset").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         waveform.updateRegion(0, cachedSegment.chunk.start, cachedSegment.chunk.end);
-	if (cachedSegment.comment)
+        if (cachedSegment.comment)
             document.getElementById("comment").value = cachedSegment.comment;
-	else
+        else
             document.getElementById("comment").value = "";
     }
 });
@@ -198,7 +198,7 @@ document.getElementById("quit").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         unlockCurrentSegment();
         setEnabled(false);
-	clear();
+        clear();
     }
 });
 
@@ -206,17 +206,17 @@ document.getElementById("unlock-all").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
         unlockAll();
         setEnabled(false);
-	clear();
+        clear();
     }
 });
 
 document.getElementById("load_stats").addEventListener("click", function (evt) {
     if (!evt.target.disabled) {
-	let request = {
-    	    'client_id': clientID,
-    	    'message_type': 'stats',
-	};
-	ws.send(JSON.stringify(request));
+        let request = {
+            'client_id': clientID,
+            'message_type': 'stats',
+        };
+        ws.send(JSON.stringify(request));
     }
 });
 
@@ -309,18 +309,18 @@ function displayAudioChunk(chunk) {
     let status = chunk.current_status.name;
     let statusDiv = document.getElementById("current_status_div");
     if (chunk.labels && chunk.labels.includes("bad sample"))
-	status = "bad sample";
-    if (status === "ok") 
-	statusDiv.style.borderColor = "lightgreen";
+        status = "bad sample";
+    if (status === "ok")
+        statusDiv.style.borderColor = "lightgreen";
     else if (status === "bad sample")
-	statusDiv.style.borderColor = "#ff5757";
+        statusDiv.style.borderColor = "#ff5757";
     else if (status === "skip")
-	statusDiv.style.borderColor = "orange";
+        statusDiv.style.borderColor = "orange";
     else if (status === "unchecked")
-	statusDiv.style.borderColor = "lightgrey";
-    else 
-	statusDiv.style.borderColor = "none";
-	
+        statusDiv.style.borderColor = "lightgrey";
+    else
+        statusDiv.style.borderColor = "none";
+
     if (chunk.current_status.source)
         status += " (" + chunk.current_status.source + ")";
     if (chunk.current_status.timestamp)
@@ -367,12 +367,12 @@ function unlockCurrentSegment() {
         return;
 
     let request = {
-	'client_id': clientID,
-	'message_type': 'unlock',
-	'payload': JSON.stringify({
-	    'segment_id': cachedSegment.id,
-	    'user_name': document.getElementById("username").innerText,
-	}),
+        'client_id': clientID,
+        'message_type': 'unlock',
+        'payload': JSON.stringify({
+            'segment_id': cachedSegment.id,
+            'user_name': document.getElementById("username").innerText,
+        }),
     };
     ws.send(JSON.stringify(request));
 }
@@ -380,11 +380,11 @@ function unlockCurrentSegment() {
 function unlockAll() {
     console.log("unlockAll called")
     let request = {
-	'client_id': clientID,
-	'message_type': 'unlock_all',
-	'payload': JSON.stringify({
-	    'user_name': document.getElementById("username").innerText,
-	}),
+        'client_id': clientID,
+        'message_type': 'unlock_all',
+        'payload': JSON.stringify({
+            'user_name': document.getElementById("username").innerText,
+        }),
     };
     ws.send(JSON.stringify(request));
 }
@@ -399,11 +399,11 @@ function createQuery(stepSize, requestIndex) {
         user_name: document.getElementById("username").innerText,
     }
     if (stepSize)
-	query.step_size = stepSize;
+        query.step_size = stepSize;
     if (requestIndex)
-	query.request_index = requestIndex;
+        query.request_index = requestIndex;
     if (gloptions.context && gloptions.context >= 0)
-        query.context = gloptions.context;
+        query.context = parseInt(gloptions.context);
     if (cachedSegment && cachedSegment !== null)
         query.curr_id = cachedSegment.id;
 
@@ -438,7 +438,7 @@ function saveUnlockAndNext(options) {
         logError(msg);
         return;
     }
-    if (options.status && (!cachedSegment || !cachedSegment.id) ) {
+    if (options.status && (!cachedSegment || !cachedSegment.id)) {
         let msg = "No cached segment -- cannot save!";
         alert(msg);
         logError(msg);
@@ -446,8 +446,8 @@ function saveUnlockAndNext(options) {
     }
     let unlock = {}
     if (cachedSegment && cachedSegment.id)
-	unlock = {user_name: user, segment_id: cachedSegment.id };
-	
+        unlock = { user_name: user, segment_id: cachedSegment.id };
+
     let annotation = {};
     if (options.status) { // create annotation to save
         let status = {
@@ -477,11 +477,11 @@ function saveUnlockAndNext(options) {
             status_history: statusHistory,
             labels: labels,
             comment: document.getElementById("comment").value,
-	    index: cachedSegment.index,
+            index: cachedSegment.index,
         }
     }
     let query = createQuery(options.stepSize, options.requestIndex);
-    
+
     let payload = {
         annotation: annotation,
         unlock: unlock,
@@ -490,22 +490,22 @@ function saveUnlockAndNext(options) {
     //console.log("payload", JSON.stringify(payload));
 
     let request = {
-	'client_id': clientID,
-	'message_type': 'saveunlockandnext',
-	'payload': JSON.stringify(payload),
+        'client_id': clientID,
+        'message_type': 'saveunlockandnext',
+        'payload': JSON.stringify(payload),
     };
     ws.send(JSON.stringify(request));
 }
 
 
-onload = function() {
+onload = function () {
 
     setEnabled(false);
     clear();
 
     let params = new URLSearchParams(window.location.search);
     if (params.get('username')) {
-	gloptions.userName = params.get('username');
+        gloptions.userName = params.get('username');
         document.getElementById("username").innerText = gloptions.userName;
     }
     else {
@@ -523,54 +523,54 @@ onload = function() {
         gloptions.requestStatus = params.get('requeststatus').toLowerCase();
         if (document.getElementById(`requeststatus-${gloptions.requestStatus}`))
             document.getElementById(`requeststatus-${gloptions.requestStatus}`).checked = true;
-	else {
-	    logError(`Invalid search mode: ${gloptions.requestStatus}`);
-	    gloptions.requestStatus = "Unchecked";
-	}
+        else {
+            logError(`Invalid search mode: ${gloptions.requestStatus}`);
+            gloptions.requestStatus = "Unchecked";
+        }
     }
     if (params.get('autoplay')) {
         gloptions.autoplay = params.get('autoplay').toLowerCase();
         if (document.getElementById(`autoplay-${gloptions.autoplay}`))
             document.getElementById(`autoplay-${gloptions.autoplay}`).checked = true;
-	else {
-	    logError(`Invalid search mode: ${gloptions.autoplay}`);
-	    gloptions.autoplay = "None";
-	}
+        else {
+            logError(`Invalid search mode: ${gloptions.autoplay}`);
+            gloptions.autoplay = "None";
+        }
     }
 
     console.log("gloptions", gloptions);
-    
-    let url = wsBase + "/ws/"+clientID;
+
+    let url = wsBase + "/ws/" + clientID;
     ws = new WebSocket(url);
-    ws.onopen = function() {
-	logMessage("Websocket opened");
-	saveUnlockAndNext({stepSize: 1});
+    ws.onopen = function () {
+        logMessage("Websocket opened");
+        saveUnlockAndNext({ stepSize: 1 });
     }
-    ws.onmessage = function(evt) {
-	let resp = JSON.parse(evt.data);
-	//console.log("ws.onmessage", resp);
-	if (resp.error) {
-	    logError("Server error: " + resp.error);
-	    return;
-	}
-	if (resp.info) {
-	    logMessage(resp.info);
-	}
-	if (resp.message_type === "stats") 
-	    displayStats(JSON.parse(resp.payload));
-	else if (resp.message_type === "explicit_unlock_completed") {
-	    cachedSegment = null;
-	    logMessage(JSON.parse(resp.payload));
-	}
-	else if (resp.message_type === "no_audio_chunk") {
-	    let msg = JSON.parse(resp.payload);
-	    logMessage(msg);
-	    alert(msg);
-	}
-	else if (resp.message_type === "audio_chunk")
-	    displayAudioChunk(JSON.parse(resp.payload));
- 	else if ( resp.info === "" && resp.message_type != "keep_alive" ) 
-	    logWarning("Unknown message from server: [" + resp.message_type + "] " + resp.payload);
+    ws.onmessage = function (evt) {
+        let resp = JSON.parse(evt.data);
+        //console.log("ws.onmessage", resp);
+        if (resp.error) {
+            logError("Server error: " + resp.error);
+            return;
+        }
+        if (resp.info) {
+            logMessage(resp.info);
+        }
+        if (resp.message_type === "stats")
+            displayStats(JSON.parse(resp.payload));
+        else if (resp.message_type === "explicit_unlock_completed") {
+            cachedSegment = null;
+            logMessage(JSON.parse(resp.payload));
+        }
+        else if (resp.message_type === "no_audio_chunk") {
+            let msg = JSON.parse(resp.payload);
+            logMessage(msg);
+            alert(msg);
+        }
+        else if (resp.message_type === "audio_chunk")
+            displayAudioChunk(JSON.parse(resp.payload));
+        else if (resp.info === "" && resp.message_type != "keep_alive")
+            logWarning("Unknown message from server: [" + resp.message_type + "] " + resp.payload);
     }
 
     console.log("main window loaded");
@@ -590,7 +590,7 @@ onload = function() {
     waveform = new Waveform(options);
     // waveform.wavesurfer.on("region-created", function (region) {
     //     autoplay();
-	// });
+    // });
 
     //loadSegmentFromFile('tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260_00021.json');
 
@@ -608,7 +608,7 @@ function loadKeyboardShortcuts() {
             let ele = document.getElementById(id);
             if (ele) {
                 if (!ele.title)
-                ele.title = "key: " + tooltip;
+                    ele.title = "key: " + tooltip;
             } else
                 throw Error(`No element with id ${id}`);
         }
@@ -651,7 +651,7 @@ const shortcuts = {
 window.addEventListener("keydown", function (evt) {
     //console.log(evt.which);
     if (document.activeElement.tagName.toLowerCase() === "textarea")
-	return;
+        return;
     let key = evt.key;
     if (evt.altKey)
         key = "alt " + key;
