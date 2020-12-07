@@ -48,6 +48,10 @@ func (api *DBAPI) LoadData() error {
 	}
 	// TODO: Load source data into memory + sort!
 	// TODO: Load annotation data into memory + sort!
+	_, err = api.ListAllSegments()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -58,6 +62,7 @@ func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
 	if err != nil {
 		return res, fmt.Errorf("couldn't list files in folder %s : %v", api.SourceDataDir, err)
 	}
+	seenIDs := make(map[string]bool)
 	for _, f := range files {
 		if strings.HasSuffix(f.Name(), ".json") {
 			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, f.Name()))
@@ -69,6 +74,13 @@ func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
 			if err != nil {
 				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
 			}
+			if segment.ID == "" {
+				return res, fmt.Errorf("invalid json in source file %s (no id)", f.Name())
+			}
+			if _, seen := seenIDs[segment.ID]; seen {
+				return res, fmt.Errorf("duplicate source ids: %s", segment.ID)
+			}
+			seenIDs[segment.ID] = true
 			res = append(res, segment)
 		}
 	}
