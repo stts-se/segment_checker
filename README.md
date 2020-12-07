@@ -3,6 +3,28 @@
 
 Tool for revising segment boundaries. Developed by [STTS](https://stts.se) on behalf of [TMH](https://www.speech.kth.se).
 
+## Tool functionality
+
+* manually adjust segment boundaries, one chunk at a time
+* play buttons for left context/right context/segment only/all
+* mark with status "SKIP" or "OK"
+* optional label "Bad sample"
+* one free text comment is allowed
+* include username + timestamp in status?
+* navigate to next, prev, first, last
+* navigation goes to next disregarding status, or next unchecked? prev unchecked or just previously checked? or both?
+* audio sample to display is max 5 seconds total (usually less)
+* default values for left/right context length:
+  - 200ms for vowel segments
+  - 1s for silence 
+* left/right context length should be configurable
+* no zoom possibility for now
+
+## Licenses
+This tool is licensed under Apache 2.0.
+
+The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licenses/BSD-3-Clause) (compatible with Apache 2.0).
+
 ## Source data
 
 Audio URL with segment type and time chunks (in milliseconds). Example:
@@ -57,31 +79,8 @@ Only one segment type is revised at a time. For _silence_ segments: if a file co
      }
 
 
-## Layout draft
 
-<img src="layout_draft.png">
 
-## Tool functionality
-
-* manually adjust segment boundaries, one chunk at a time
-* play buttons for left context/right context/segment only/all
-* mark with status "SKIP" or "OK"
-* optional label "Bad sample"
-* one free text comment is allowed
-* include username + timestamp in status?
-* navigate to next, prev, first, last
-* navigation goes to next disregarding status, or next unchecked? prev unchecked or just previously checked? or both?
-* audio sample to display is max 5 seconds total (usually less)
-* default values for left/right context length:
-  - 200ms for vowel segments
-  - 1s for silence 
-* left/right context length should be configurable
-* no zoom possibility for now
-
-## Licenses
-This tool is licensed under Apache 2.0.
-
-The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licenses/BSD-3-Clause) (compatible with Apache 2.0).
 
 ---
 
