@@ -86,8 +86,8 @@ Only one segment type is revised at a time. For _silence_ segments: if a file co
 
 # Runnable example server
 
-1. Retrieve the file `audio.zip` provided by Hanna
-2. Retrieve the file `data.zip` provided by Hanna
+1. Retrieve the file `audio.zip` provided by STTS
+2. Retrieve the file `data.zip` provided by STTS
 3. `git clone git@github.com:stts-se/segment_checker`
 4. `cd segment_checker`
 5. `unzip audio.zip`
