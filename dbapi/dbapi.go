@@ -238,6 +238,9 @@ func (api *DBAPI) annotationFromSegment(segment protocol.SegmentPayload) (protoc
 		if err != nil {
 			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
 		}
+		if annotation.ID == "" {
+			return annotation, fmt.Errorf("invalid json in annotation file %s (no id)", annotationFile)
+		}
 	} else {
 		annotation = protocol.AnnotationPayload{
 			SegmentPayload: segment,
@@ -256,6 +259,9 @@ func (api *DBAPI) segmentFromSource(sourceFile string) (protocol.SegmentPayload,
 	err = json.Unmarshal(bts, &segment)
 	if err != nil {
 		return protocol.SegmentPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile, err)
+	}
+	if segment.ID == "" {
+		return protocol.SegmentPayload{}, fmt.Errorf("invalid json in source file %s (no id)", sourceFile)
 	}
 	return segment, nil
 }

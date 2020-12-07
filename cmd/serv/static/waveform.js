@@ -78,7 +78,7 @@ class Waveform {
 	});
 
 	this.wavesurfer.on("region-created", function (region) {
-	    region.color = main.defaultRegionBackground;
+		region.color = main.defaultRegionBackground;
 	    region.element.addEventListener("click", async function (evt) {
 		main.debug("click", evt);
 		main.logEvent(evt);

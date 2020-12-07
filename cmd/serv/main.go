@@ -300,8 +300,8 @@ func load(conn *websocket.Conn, annotation protocol.AnnotationPayload, explicitC
 	}
 	res, err := chunkExtractor.ProcessURLWithContext(request, "")
 	if err != nil {
-		msg := fmt.Sprintf("Chunk extractor failed : %v", err)
-		wsError(conn, msg, msg)
+		serverMsg := fmt.Sprintf("Chunk extractor failed : %v", err)
+		wsError(conn, serverMsg, fmt.Sprintf("Chunk extractor failed for %s. See server log for details.", request.URL))
 		return
 	}
 	chunk := res.Chunk

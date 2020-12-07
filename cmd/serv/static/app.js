@@ -95,12 +95,16 @@ function autoplay() {
 
 async function loadAudioBlob(url, chunk) {
     waveform.loadAudioBlob(url, [chunk]);
-    //autoplay();
+	// waveform.wavesurfer.on("region-created", function (region) {
+    //     autoplay();
+	// });
 }
 
 function loadAudioURL(url, chunk) {
     waveform.loadAudioURL(url, [chunk]);
-    //autoplay();
+    // waveform.wavesurfer.on("region-created", function (region) {
+    //     autoplay();
+	// });
 }
 
 document.getElementById("play-all").addEventListener("click", function (evt) {
@@ -577,12 +581,16 @@ onload = function() {
         waveformElementID: "waveform",
         timelineElementID: "waveform-timeline",
         spectrogramElementID: "waveform-spectrogram",
+        // autoplayFunc: function () { return true; },
         // zoomElementID: "waveform-zoom",
         // navigationElementID: "waveform-navigation",
         debug: false,
     };
 
     waveform = new Waveform(options);
+    // waveform.wavesurfer.on("region-created", function (region) {
+    //     autoplay();
+	// });
 
     //loadSegmentFromFile('tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260_00021.json');
 
@@ -640,7 +648,7 @@ const shortcuts = {
 };
 
 window.addEventListener("keydown", function (evt) {
-    console.log(evt.which);
+    //console.log(evt.which);
     if (document.activeElement.tagName.toLowerCase() === "textarea")
 	return;
     let key = evt.key;
