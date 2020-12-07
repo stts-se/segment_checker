@@ -59,7 +59,7 @@ Only one segment type is revised at a time. For _silence_ segments: if a file co
 
 ## Layout draft
 
-<img src="layout_draft.png">
+<img src="tmh_layout_draft.png">
 
 ## Tool functionality
 
