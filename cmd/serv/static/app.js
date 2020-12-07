@@ -606,9 +606,10 @@ function loadKeyboardShortcuts() {
             tooltip = key.toLowerCase();
         if (id && tooltip) {
             let ele = document.getElementById(id);
-            if (ele)
+            if (ele) {
+                if (!ele.title)
                 ele.title = "key: " + tooltip;
-            else
+            } else
                 throw Error(`No element with id ${id}`);
         }
         if (tooltip && shortcuts[key].funcDesc) {
