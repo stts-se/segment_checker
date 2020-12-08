@@ -471,6 +471,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	_, err = os.Stat(*cfg.ServeDir)
+	if os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "Served folder %s does not exist\n", *cfg.ServeDir)
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	db = dbapi.NewDBAPI(*cfg.ProjectDir)
 	err = db.LoadData()
 	if err != nil {

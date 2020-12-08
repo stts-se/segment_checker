@@ -158,10 +158,10 @@ func validateSegment(segment protocol.SegmentPayload) error {
 		return fmt.Errorf("no URL")
 	}
 	urlResp, err := http.Get(segment.URL)
-	defer urlResp.Body.Close()
 	if err != nil {
 		return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
 	}
+	defer urlResp.Body.Close()
 	if urlResp.StatusCode != http.StatusOK {
 		return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
 	}

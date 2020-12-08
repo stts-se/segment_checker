@@ -23,72 +23,101 @@ This tool is licensed under Apache 2.0.
 
 The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licenses/BSD-3-Clause) (compatible with Apache 2.0).
 
-## Source data
 
-Audio URL with segment type and time chunks (in milliseconds). Example:
 
+# Installation 
+
+## Requirements
+
+* `golang 1.15`
+* `ffmpeg`
+
+## Build from source
+
+1. Clone this repository: `git clone https://github.com:stts-se/segment_checker`
+2. Change directory: `cd segment_checker`
+3. Build the application: `make`
+4. Unpack the output file `segche.zip` in a separate folder
+
+
+# Demo application server
+
+This repository includes audio based on the Swedish Wikipedia page about easy to read texts: https://sv.wikipedia.org/wiki/L%C3%A4ttl%C3%A4st
+
+Part of the page has been recorded, and pauses have been labelled automatically.
+
+You can use the demo data to review the pauses.
+
+## Unpack demo data
+
+`unzip demo_data_lattlast.zip`
+
+## Serving audio
+
+Use the file server included in the repository to serve the demo audio files:
+
+`./file_server data/demo_lattlast/audio`
+
+## Starting the application server
+
+1. `./serv -project data/demo_lattlast`
+2. Visit `http://localhost:7371` using your browser (Firefox is recommended)
+
+
+# Using the application server with other data
+
+## Preparing data
+
+The source data consists of one JSON file per labelled segment, with the following attributes:
+
+* id: should be unique within the project
+* url: audio URL (audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application server_)
+* segment_type: "silence" or "e" (the vowel)
+* chunk: start and end time (milliseconds) for the labelled segment
+
+
+Example:
     
-    $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00000.json
+     $ cat data/demo_lattlast/source/lattlast_ogg_0001.json
+     {
+       "id": "lattlast_ogg_0001",
+       "url": "http://localhost:7381/lattlast.ogg",
+       "segment_type": "silence",
+       "chunk": {
+        "start": 3935,
+        "end": 5051
+       }
+    }
+
+
+Source data should be placed in the following folder: `data/<projectname>/source/`.
+
+
+## Annotated data
+
+Annotated data will be saved in the following folder: `data/<projectname>/annotation/`. Each segment will be saved in a file named `<segment-id>.json`
+
+Example:
+
+    $ cat data/demo_lattlast/annotation/lattlast_ogg_0001.json
     {
-      "id": "7c8366a8-2d9d-11eb-91e4-2c4d54557184",
-      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260.wav",
+      "id": "lattlast_ogg_0001",
+      "url": "http://localhost:7381/lattlast.ogg",
       "segment_type": "silence",
       "chunk": {
-       "start": 1500,
-       "end": 3822
-      }
-     }
-     
-    $ cat data/source/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260_00001.json
-    {
-      "id": "7c836914-2d9d-11eb-91e4-2c4d54557184",
-      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Niclas_Tal_1_2020-08-24_141655_b35aa260.wav",
-      "segment_type": "silence",
-      "chunk": {
-       "start": 26973,
-       "end": 28067
-      }
-     }
-
-
-
-Segment types: silence, "e" (the vowel), etc.
-
-Only one segment type is revised at a time. For _silence_ segments: if a file contains three pauses, it will be revised in three steps. Other segment types are not checked.
-
-## Annotation data
-
-    $ cat 7c8366a8-2d9d-11eb-91e4-2c4d54557184.json 
-    {
-      "id": "7c8366a8-2d9d-11eb-91e4-2c4d54557184", // points to the uuid in the corresponding source file
-      "url": "http:/localhost:7371/audio/rispik/tillstud_demo_2_Nx_Tal_1_2020-08-24_141655_b35aa260.wav",
-      "segment_type": "silence",
-      "chunk": {
-       "start": 1500,
-       "end": 3822
+       "start": 4001,
+       "end": 5051
       },
-      "labels": [],
-      "status": {
+      "current_status": {
        "name": "ok",
        "source": "hanna",
-       "timestamp": "Mon, 23 Nov 2020 19:24:11 GMT"
-      },
-      "comment": ""
-     }
+       "timestamp": "2020-12-08 19:21:43"
+      }
+    }
 
 
+## Starting the application server
 
+1. `./serv -project data/<projectname>`
+2. Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
-
----
-
-# Runnable example server
-
-1. Retrieve the file `audio.zip` provided by STTS
-2. Retrieve the file `data.zip` provided by STTS
-3. `git clone git@github.com:stts-se/segment_checker`
-4. `cd segment_checker`
-5. `unzip audio.zip`
-6. `unzip data.zip`
-7. `go run cmd/serv/main.go -serve cmd/serv/static/ -source data/source/  -annotation data/annotation`
-8. Visit `http://localhost:7371` using your browser (Firefox is recommended)

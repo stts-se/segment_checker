@@ -10,23 +10,24 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/uuid"
-
 	"github.com/stts-se/segment_checker/protocol"
 )
+
+func createID(audioFile string, chunkIndex int) string {
+	f := strings.Replace(path.Base(audioFile), ".", "_", -1)
+	return fmt.Sprintf("%s_%04d", f, (chunkIndex + 1))
+}
 
 func main() {
 
 	cmd := "create_silence_segments"
 
-	project := flag.String("project", "rispik", "project name")
-	target := flag.Int("target", 0, "Target size")
-	//urlPrefixFlag := flag.String("urlprefix", "http://localhost:7371/audio/${project}", "URL prefix")
-	urlPrefixFlag := flag.String("urlprefix", "http://localhost:7371/audio/rispik", "URL prefix")
+	project := flag.String("project", "", "Project name")
+	target := flag.Int("target", 0, "Target size (can generate duplicated data for performance testing)")
+	urlPrefixFlag := flag.String("urlprefix", "http://localhost:7381/", "URL prefix")
 	outDirFlag := flag.String("outdir", "data/${project}/source", "Output `directory`")
 
 	help := flag.Bool("help", false, "Print usage and exit")
-	h := flag.Bool("h", false, "Print usage and exit")
 
 	flag.Parse()
 
@@ -36,12 +37,21 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	if *help || *h {
+	if *help {
 		flag.Usage()
 		os.Exit(0)
 	}
 
+	if *project == "" {
+		fmt.Fprintf(os.Stderr, "Required flag project is not set: project\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	urlPrefix := strings.Replace(*urlPrefixFlag, "${project}", *project, 1)
+	if !strings.HasSuffix(urlPrefix, "/") {
+		urlPrefix = urlPrefix + "/"
+	}
 	outDir := strings.Replace(*outDirFlag, "${project}", *project, 1)
 	os.MkdirAll(outDir, os.ModePerm)
 	fmt.Fprintf(os.Stderr, "Project: %s\n", *project)
@@ -69,15 +79,12 @@ func main() {
 					log.Fatalf("Got error from chunker.Process: %v after %d created files", err, counter)
 				}
 				source := protocol.SourcePayload{
-					URL:         path.Join(urlPrefix, path.Base(fName)),
+					URL:         fmt.Sprintf("%s%s", urlPrefix, path.Base(fName)),
 					SegmentType: "silence",
 					Chunks:      chunks,
 				}
-				for _, chunk := range source.Chunks {
-					id, err := uuid.NewUUID()
-					if err != nil {
-						log.Fatalf("Couldn't create uuid: %v", err)
-					}
+				for i, chunk := range source.Chunks {
+					id := createID(fName, i)
 					segment := protocol.SegmentPayload{
 						ID:          fmt.Sprintf("%v", id),
 						URL:         source.URL,
