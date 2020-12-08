@@ -35,7 +35,7 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 
 ## Build from source
 
-1. Clone this repository: `git clone https://github.com:stts-se/segment_checker`
+1. Clone the repository: `git clone https://github.com:stts-se/segment_checker`
 2. Change directory: `cd segment_checker`
 3. Build the application: `make`
 4. Unpack the output file `segche.zip` in a separate folder
