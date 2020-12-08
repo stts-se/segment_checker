@@ -1,176 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
+    <head>
 	<title>Segment checker</title>
 	<meta charset="utf-8">
 	<link rel="stylesheet" href="layout.css">
 	<link rel="stylesheet" href="style.css">
-</head>
+    </head>
 
-<body class="selected-font">
+    <body class="selected-font">
 	<div class="wrapper">
 
-		<!-- header row -->
-		<div class="grid-logo"><img class="rounded-border" src="logo.png" width="50" /></div>
-		<div class="grid-app_name">
-			<h2>Segment checker</h2>
+	    <!-- header row -->
+	    <div class="grid-logo"><img class="rounded-border" src="logo.png" width="50" /></div>
+	    <div class="grid-app_name">
+		<h2>Segment checker</h2>
+	    </div>
+
+	    <div class="grid-main smallcaps">
+
+		<div id="segment_id" class="nosmallcaps" style="text-align: center"></div>
+
+		<div id="waveform-pane" class="grid-component rounded-border smallcaps resizable">
+		    <div id="waveform-spectrogram"></div>
+		    <div id="waveform"></div>
+		    <div id="waveform-timeline"></div>
 		</div>
 
-		<div class="grid-main smallcaps">
+		<div class="grid-component smallcaps" style="text-align: center">
 
-			<div id="segment_id" class="nosmallcaps" style="text-align: center"></div>
+		    <div style="margin: 10px" class="hidden">
+			<span id='save-badsample' class="btn" style="background-color:#ff5757">bad sample</span>
+			<span id='save-skip' class="btn" style="background-color:orange">skip</span>
+			<span id='save-ok' class="btn" style="background-color:lightgreen">save</span>
+		    </div>
+		    <div id="current_status_div" class="current_status_div">
+			current status: <span class="nosmallcaps" id="current_status"></span>
+			<!-- <br/> label: <span class="nosmallcaps" id="labels"></span> -->
+		    </div>
+		    <div style="margin: 10px">
+			<span id='save-badsample-next' class="btn" style="background-color:#ff5757">bs+next</span>
+			<span id='save-skip-next' class="btn" style="background-color:orange">skip+next</span>
+			<span id='save-ok-next' class="btn" style="background-color:lightgreen">save+next</span>
+			<span id="first" title="Go to first" class='btn icon'>|&laquo;</span>
+			<span id="prev" title="Go to previous matching request status" class='btn icon'>&laquo;</span>
+			<span id="prev_any" title="Go to previous segment" class='btn icon'>&lt;</span>
+			<span id="next_any" title="Go to next segment" class='btn icon'>&gt;</span>
+			<span id="next" title="Go to next matching request status" class='btn icon'>&raquo;</span>
+			<span id="last" title="Go to last" class='btn icon'>&raquo;|</span>
+		    </div>
+		    <div style="margin: 10px">
+			<span id="reset" class="btn" style="background-color:white">reset</span>
+			<span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
+			<span id="quit" class="btn" style="background-color:yellow">quit</span>
 
-			<div id="waveform-pane" class="grid-component rounded-border smallcaps resizable">
-				<div id="waveform-spectrogram"></div>
-				<div id="waveform"></div>
-				<div id="waveform-timeline"></div>
-			</div>
+			<span style="cursor: default" class="btnlabel">play:</span><span id="play-left" class="btn">left</span>
+			<span id="play-label" class="btn">label</span>
+			<span id="play-right" class="btn">right</span>
+			<span id="play-all" class="btn">all</span>
+		    </div>
+		    <div style="margin: 10px;" class="hidden">
+			<span id='move-left2left-short' class="btn">&lt;l</span>
+			<span id='move-left2right-short' class="btn">l&gt;</span>
+			<span id='move-right2left-short' class="btn">&lt;r</span>
+			<span id='move-right2right-short' class="btn">r&gt;</span>
+			<span id='move-left2left-long' class="btn">&laquo;l</span>
+			<span id='move-left2right-long' class="btn">l&raquo;</span>
+			<span id='move-right2left-long' class="btn">&laquo;r</span>
+			<span id='move-right2right-long' class="btn">r&raquo;</span>
+		    </div>
 
-			<div class="grid-component smallcaps" style="text-align: center">
-
-				<div style="margin: 10px" class="hidden">
-					<span id='save-badsample' class="btn" style="background-color:#ff5757">bad sample</span>
-					<span id='save-skip' class="btn" style="background-color:orange">skip</span>
-					<span id='save-ok' class="btn" style="background-color:lightgreen">save</span>
-				</div>
-				<div id="current_status_div" class="current_status_div">
-				    current status: <span class="nosmallcaps" id="current_status"></span>
-				    <!-- <br/> label: <span class="nosmallcaps" id="labels"></span> -->
-				</div>
-				<div style="margin: 10px">
-					<span id='save-badsample-next' class="btn" style="background-color:#ff5757">bs+next</span>
-					<span id='save-skip-next' class="btn" style="background-color:orange">skip+next</span>
-					<span id='save-ok-next' class="btn" style="background-color:lightgreen">save+next</span>
-					<span id="first" title="Go to first" class='btn icon'>|&laquo;</span>
-					<span id="prev" title="Go to previous" class='btn icon'>&laquo;</span>
-					<span id="next" title="Go to next" class='btn icon'>&raquo;</span>
-					<span id="last" title="Go to last" class='btn icon'>&raquo;|</span>
-				</div>
-				<div style="margin: 10px">
-				    <span id="reset" class="btn" style="background-color:white">reset</span>
-				    <span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
-				    <span id="quit" class="btn" style="background-color:yellow">quit</span>
-
-				    <span style="cursor: default" class="btnlabel">play:</span><span id="play-left" class="btn">left</span>
-				    <span id="play-label" class="btn">label</span>
-				    <span id="play-right" class="btn">right</span>
-				    <span id="play-all" class="btn">all</span>
-				</div>
-				<div style="margin: 10px;" class="hidden">
-				    <span id='move-left2left-short' class="btn">&lt;l</span>
-				    <span id='move-left2right-short' class="btn">l&gt;</span>
-				    <span id='move-right2left-short' class="btn">&lt;r</span>
-				    <span id='move-right2right-short' class="btn">r&gt;</span>
-				    <span id='move-left2left-long' class="btn">&laquo;l</span>
-				    <span id='move-left2right-long' class="btn">l&raquo;</span>
-				    <span id='move-right2left-long' class="btn">&laquo;r</span>
-				    <span id='move-right2right-long' class="btn">r&raquo;</span>
-				</div>
-
-				<!-- 
-				     <div style="margin: 10px">
-				     <span id="reset" class="btn" style="background-color:white">reset</span>
-				     <span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
-				     <span id="quit" class="btn" style="background-color:yellow">quit</span>
-				     </div>
-				-->
-			</div>
-
-			<div class="smallcaps" style="padding: 10px">comment<br />
-			    <textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment"
-					     rows="4"></textarea>
-			</div>
-
-			<div style="padding: 10px; margin-top: 40px" class="nosmallcaps">
-			    <em>
-				Developed by <a href="https://stts.se">STTS</a> on behalf of <a
-												 href="https://www.speech.kth.se">TMH</a> &#183;
-				<a href="https://github.com/stts-se/segment_checker">github.com/stts-se/segment_checker</a>
-			    </em>
-			</div>
-
+		    <!-- 
+			 <div style="margin: 10px">
+			 <span id="reset" class="btn" style="background-color:white">reset</span>
+			 <span id="unlock-all" class="btn" style="background-color:lightgrey">release all</span>
+			 <span id="quit" class="btn" style="background-color:yellow">quit</span>
+			 </div>
+		    -->
 		</div>
 
-		<div class="grid-rightpanel smallcaps">
+		<div class="smallcaps" style="padding: 10px">comment<br />
+		    <textarea style="padding: 10px; width: 760px" class="rounded-border nosmallcaps" id="comment"
+			      rows="4"></textarea>
+		</div>
 
-		    <div>user: <span class="nosmallcaps" id="username"></span> </div>
+		<div style="padding: 10px; margin-top: 40px" class="nosmallcaps">
+		    <em>
+			Developed by <a href="https://stts.se">STTS</a> on behalf of <a
+											 href="https://www.speech.kth.se">TMH</a> &#183;
+			<a href="https://github.com/stts-se/segment_checker">github.com/stts-se/segment_checker</a>
+		    </em>
+		</div>
+
+	    </div>
+
+	    <div class="grid-rightpanel smallcaps">
+
+		<div>user: <span class="nosmallcaps" id="username"></span> </div>
+		
+		<details open><summary>options</summary>
+		    <div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
+
+		    <div class="hidden">autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
+			<input type="radio" id="autoplay-left" name="autoplay"><label for="autoplay-left">Left</label>
+			<input type="radio" id="autoplay-label" name="autoplay"><label for="autoplay-label">Label</label>
+			<input type="radio" id="autoplay-right" name="autoplay"><label for="autoplay-right">Right</label> 
+			<input type="radio" id="autoplay-all" name="autoplay"><label for="autoplay-all">All</label> 
+			<input checked type="radio" id="autoplay-none" name="autoplay"><label for="autoplay-none">None</label> 
+		    </span> </div>
 		    
-		    <details open><summary>options</summary>
-			<div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
-
-			<div class="hidden">autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
-				    <input type="radio" id="autoplay-left" name="autoplay"><label for="autoplay-left">Left</label>
-				    <input type="radio" id="autoplay-label" name="autoplay"><label for="autoplay-label">Label</label>
-				    <input type="radio" id="autoplay-right" name="autoplay"><label for="autoplay-right">Right</label> 
-				    <input type="radio" id="autoplay-all" name="autoplay"><label for="autoplay-all">All</label> 
-				    <input checked type="radio" id="autoplay-none" name="autoplay"><label for="autoplay-none">None</label> 
-				</span> </div>
-				
-				<div>request status: <span class="nosmallcaps" id="requeststatus" style="vertical-align: middle">
-						<input checked type="radio" id="requeststatus-unchecked" name="requeststatus" value="unchecked"><label
-							for="requeststatus-unchecked">Unchecked</label>
-						<input type="radio" id="requeststatus-checked" name="requeststatus" value="checked"><label
-							for="requeststatus-checked">Checked</label>
-						<input type="radio" id="requeststatus-ok" name="requeststatus" value="ok"><label
-							for="requeststatus-ok">Ok</label>
-						<input type="radio" id="requeststatus-any" name="requeststatus" value="any"><label
-							for="requeststatus-any">Any</label>
-					</span>
-				</div>
-			</details>
+		    <div>request status: <span class="nosmallcaps" id="requeststatus" style="vertical-align: middle">
+			<input checked type="radio" id="requeststatus-unchecked" name="requeststatus" value="unchecked"><label
+															    for="requeststatus-unchecked">Unchecked</label>
+			<input type="radio" id="requeststatus-checked" name="requeststatus" value="checked"><label
+														for="requeststatus-checked">Checked</label>
+			<input type="radio" id="requeststatus-ok" name="requeststatus" value="ok"><label
+												      for="requeststatus-ok">Ok</label>
+			<input type="radio" id="requeststatus-any" name="requeststatus" value="any"><label
+													for="requeststatus-any">Any</label>
+		    </span>
+		    </div>
+		</details>
 
 
-			<details style="margin-top: 20px; width: 700px; overflow-y: scroll;">
-				<summary>shortcuts</summary>
-				<span class="nosmallcaps">
-					<table>
-						<thead>
-							<tr>
-								<th>Key</th>
-								<th>Action</th>
-							</tr>
-						</thead>
-						<tbody id="shortcuts"></tbody>
-					</table>
-				</span>
-			</details>
+		<details style="margin-top: 20px; width: 700px; overflow-y: scroll;">
+		    <summary>shortcuts</summary>
+		    <span class="nosmallcaps">
+			<table>
+			    <thead>
+				<tr>
+				    <th>Key</th>
+				    <th>Action</th>
+				</tr>
+			    </thead>
+			    <tbody id="shortcuts"></tbody>
+			</table>
+		    </span>
+		</details>
 
-			<div style="margin-top: 20px; height: 200px; width: 700px; overflow-y: scroll">
-				messages <span id="clear_messages" class="btn icon noborder"
-					title="Click to clear messages">&#x1f5d1;</span>
-				<div id="messages" class="nosmallcaps">
-				</div>
-			</div>
-
-			<div style="margin-top: 20px; overflow-y: scroll; width: 700px">
-			    stats <span class="btn icon noborder" id="load_stats" title="Click to reload stats">&#x21bb;</span>
-			    <span id="stats_timestamp"></span>
-				<span class="nosmallcaps">
-					<table>
-						<!-- <thead><tr><th>Key</th><th>Action</th></tr></thead> -->
-						<tbody id="stats"></tbody>
-					</table>
-				</span>
-			</div>
-
+		<div style="margin-top: 20px; height: 200px; width: 700px; overflow-y: scroll">
+		    messages <span id="clear_messages" class="btn icon noborder"
+				       title="Click to clear messages">&#x1f5d1;</span>
+		    <div id="messages" class="nosmallcaps">
+		    </div>
 		</div>
 
-		<!-- EXTERNAL LIBRARIES -->
+		<div style="margin-top: 20px; overflow-y: scroll; width: 700px">
+		    stats <span class="btn icon noborder" id="load_stats" title="Click to reload stats">&#x21bb;</span>
+		    <span id="stats_timestamp"></span>
+		    <span class="nosmallcaps">
+			<table>
+			    <!-- <thead><tr><th>Key</th><th>Action</th></tr></thead> -->
+			    <tbody id="stats"></tbody>
+			</table>
+		    </span>
+		</div>
 
-		<!-- http://wavesurfer-js.org -->
-		<!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
-		<!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js"></script> -->
-		<!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js"></script> -->
+	    </div>
 
-		<script src="lib/wavesurfer-js/wavesurfer.js"></script>
-		<script src="lib/wavesurfer-js/wavesurfer.regions.min.js"></script>
-		<script src="lib/wavesurfer-js/wavesurfer.timeline.min.js"></script>
-		<script src="lib/wavesurfer-js/wavesurfer.spectrogram.min.js"></script>
+	    <!-- EXTERNAL LIBRARIES -->
 
-		<!-- INTERNAL LIBRARIES -->
-		<script src="lib.js"></script>
-		<script src="waveform.js"></script>
+	    <!-- http://wavesurfer-js.org -->
+	    <!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
+	    <!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js"></script> -->
+	    <!-- <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js"></script> -->
+
+	    <script src="lib/wavesurfer-js/wavesurfer.js"></script>
+	    <script src="lib/wavesurfer-js/wavesurfer.regions.min.js"></script>
+	    <script src="lib/wavesurfer-js/wavesurfer.timeline.min.js"></script>
+	    <script src="lib/wavesurfer-js/wavesurfer.spectrogram.min.js"></script>
+
+	    <!-- INTERNAL LIBRARIES -->
+	    <script src="lib.js"></script>
+	    <script src="waveform.js"></script>
 
 		<!-- APP CODE -->
 		<script src="app.js"></script>

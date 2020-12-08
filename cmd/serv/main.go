@@ -373,7 +373,7 @@ func saveUnlockAndNext(conn *websocket.Conn, payload AnnotationUnlockAndQueryPay
 			if query.StepSize < 0 {
 				direction = "previous"
 			}
-			msg := fmt.Sprintf("Couldn't find any %s segments matching request status: %v", direction, query.RequestStatus)
+			msg := fmt.Sprintf("Couldn't find any %s segments matching status: %v", direction, query.RequestStatus)
 			wsPayload(conn, "no_audio_chunk", msg)
 		}
 		if savedAnnotation.ID != "" {

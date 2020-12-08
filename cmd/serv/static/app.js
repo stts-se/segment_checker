@@ -174,6 +174,19 @@ if (document.getElementById("prev")) {
     });
 }
 
+if (document.getElementById("prev_any")) {
+    document.getElementById("prev_any").addEventListener("click", function (evt) {
+        if (!evt.target.disabled)
+            saveUnlockAndNext({ stepSize: -1, requestStatus: "any" });
+    });
+}
+if (document.getElementById("next_any")) {
+    document.getElementById("next_any").addEventListener("click", function (evt) {
+        if (!evt.target.disabled)
+            saveUnlockAndNext({ stepSize: 1, requestStatus: "any" });
+    });
+}
+
 function clear() {
     if (waveform)
         waveform.clear();
@@ -394,7 +407,7 @@ document.getElementById("clear_messages").addEventListener("click", function (ev
 });
 
 
-function createQuery(stepSize, requestIndex) {
+function createQuery(stepSize, requestIndex, requestStatus) {
     let query = {
         user_name: document.getElementById("username").innerText,
     }
@@ -408,7 +421,10 @@ function createQuery(stepSize, requestIndex) {
         query.curr_id = cachedSegment.id;
 
     // search for status
-    query.request_status = document.querySelector('input[name="requeststatus"]:checked').value;
+    if (requestStatus)
+	query.request_status = requestStatus;
+    else
+	query.request_status = document.querySelector('input[name="requeststatus"]:checked').value;
     // if (document.getElementById("requeststatus-ok").checked)
     //     query.request_status = ["ok"];
     // else if (document.getElementById("requeststatus-unchecked").checked)
@@ -480,7 +496,7 @@ function saveUnlockAndNext(options) {
             index: cachedSegment.index,
         }
     }
-    let query = createQuery(options.stepSize, options.requestIndex);
+    let query = createQuery(options.stepSize, options.requestIndex, options.requestStatus);
 
     let payload = {
         annotation: annotation,
