@@ -26,19 +26,31 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 
 
 
-# Installation 
+# Installation
 
-## Requirements
+## From source
+
+### Requirements
 
 * [golang 1.15](https://golang.org/dl/)
 * [ffmpeg](https://ffmpeg.org/)
 
-## Build from source
+### Build from source
 
 1. Clone this repository: `git clone https://github.com:stts-se/segment_checker`
 2. Change directory: `cd segment_checker`
 3. Build the application: `make`
 4. Unpack the output file `segche.zip` in a separate folder
+
+## Using pre-compiled binaries
+
+### Requirements
+
+[ffmpeg](https://ffmpeg.org/)
+
+### Install
+
+Unpack the pre-compiled release file `segche.zip`.
 
 
 # Demo application server
