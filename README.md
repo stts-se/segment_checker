@@ -52,7 +52,7 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 Unpack the pre-compiled release file `segche.zip`.
 
 
-# Demo application server
+# Demo application
 
 This repository includes audio based on the Swedish Wikipedia page about easy to read texts: [https://sv.wikipedia.org/wiki/Lättläst](https://sv.wikipedia.org/wiki/L%C3%A4ttl%C3%A4st)
 
@@ -79,7 +79,7 @@ Use the file server included in the repository to serve the demo audio files:
 Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
 
-# Using the application server with other data
+# Using the application with other data
 
 ## Defining the project
 
