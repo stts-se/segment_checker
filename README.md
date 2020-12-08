@@ -14,7 +14,7 @@ Tool for revising segment boundaries. Developed by [STTS](https://stts.se) on be
 * default values for left/right context (hardwired on server)
   - e: 200ms
   - silence: 1000ms
-  - else: 1000ms
+  - other segments: 1000ms
 * for advanced users, left/right context length can be configured
 * no zoom possibility for now
 
