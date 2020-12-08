@@ -3,7 +3,7 @@
 
 Tool for revising segment boundaries. Developed by [STTS](https://stts.se) on behalf of [TMH](https://www.speech.kth.se).
 
-## Tool functionality
+## Functionality
 
 * manually adjust segment boundaries, one chunk at a time
 * play buttons for left context/right context/segment only/all
@@ -19,6 +19,7 @@ Tool for revising segment boundaries. Developed by [STTS](https://stts.se) on be
 * no zoom possibility for now
 
 ## Licenses
+
 This tool is licensed under Apache 2.0.
 
 The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licenses/BSD-3-Clause) (compatible with Apache 2.0).
@@ -29,8 +30,8 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 
 ## Requirements
 
-* `golang 1.15`
-* `ffmpeg`
+* [golang 1.15](https://golang.org/dl/)
+* [ffmpeg](https://ffmpeg.org/)
 
 ## Build from source
 
@@ -68,12 +69,12 @@ Use the file server included in the repository to serve the demo audio files:
 
 ## Preparing data
 
-The source data consists of one JSON file per labelled segment, with the following attributes:
+The source data consists of one JSON file per labelled segment, with the following required attributes:
 
-* id: should be unique within the project
-* url: audio URL (audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application server_)
-* segment_type: "silence" or "e" (the vowel)
-* chunk: start and end time (milliseconds) for the labelled segment
+* `id`: should be unique within the project
+* `url`: audio URL (audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application server_)
+* `segment_type`: "silence" or "e" (the vowel)
+* `chunk`: start and end time (milliseconds) for the labelled segment
 
 
 Example:
