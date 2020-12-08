@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,7 +19,7 @@ import (
 const debug = false
 
 type DBAPI struct {
-	SourceDataDir, AnnotationDataDir string
+	ProjectDir, SourceDataDir, AnnotationDataDir string
 
 	dbMutex        *sync.RWMutex // for db read/write (files and in-memory saves)
 	sourceData     []protocol.SegmentPayload
@@ -30,6 +31,7 @@ type DBAPI struct {
 
 func NewDBAPI(projectDir string) *DBAPI {
 	res := DBAPI{
+		ProjectDir:        projectDir,
 		SourceDataDir:     path.Join(projectDir, "source"),
 		AnnotationDataDir: path.Join(projectDir, "annotation"),
 
@@ -45,24 +47,41 @@ func NewDBAPI(projectDir string) *DBAPI {
 
 func (api *DBAPI) LoadData() error {
 	var err error
+
+	if api.ProjectDir == "" {
+		return fmt.Errorf("project dir not provided")
+	}
 	if api.SourceDataDir == "" {
-		return fmt.Errorf("source dir not provided")
+		return fmt.Errorf("source dir not set")
 	}
 	if api.AnnotationDataDir == "" {
-		return fmt.Errorf("annotation dir not provided")
+		return fmt.Errorf("annotation dir not set")
 	}
-	info, err := os.Stat(api.SourceDataDir)
+
+	info, err := os.Stat(api.ProjectDir)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("project dir does not exist: %s", api.ProjectDir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("project dir is not a directory: %s", api.ProjectDir)
+	}
+
+	info, err = os.Stat(api.SourceDataDir)
 	if os.IsNotExist(err) {
 		return fmt.Errorf("source dir does not exist: %s", api.SourceDataDir)
 	}
 	if !info.IsDir() {
 		return fmt.Errorf("source dir is not a directory: %s", api.SourceDataDir)
 	}
+
 	info, err = os.Stat(api.AnnotationDataDir)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("annotation dir does not exist: %s", api.AnnotationDataDir)
-	}
-	if !info.IsDir() {
+		err = os.Mkdir(api.AnnotationDataDir, 0700)
+		if err != nil {
+			return fmt.Errorf("failed to create annotation folder %s : %v", api.AnnotationDataDir)
+		}
+		log.Info("dbapi Created annotation dir %s", api.AnnotationDataDir)
+	} else if !info.IsDir() {
 		return fmt.Errorf("annotation dir is not a directory: %s", api.AnnotationDataDir)
 	}
 
@@ -126,15 +145,27 @@ func validateSegment(segment protocol.SegmentPayload) error {
 	if segment.ID == "" {
 		return fmt.Errorf("no id")
 	}
-	if segment.URL == "" {
-		return fmt.Errorf("no URL")
-	}
+
 	if segment.SegmentType == "" {
 		return fmt.Errorf("no segment type")
 	}
 	if segment.Chunk.Start > segment.Chunk.End {
 		return fmt.Errorf("chunk end must be after chunk start, found chunk %#v", segment.Chunk)
 	}
+
+	// URL
+	if segment.URL == "" {
+		return fmt.Errorf("no URL")
+	}
+	urlResp, err := http.Get(segment.URL)
+	defer urlResp.Body.Close()
+	if err != nil {
+		return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
+	}
+	if urlResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+	}
+
 	return nil
 }
 
