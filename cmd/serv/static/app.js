@@ -384,7 +384,7 @@ function displayStats(stats) {
         tr.appendChild(td2);
         ele.appendChild(tr);
     });
-    let timestamp = LIB.timestampYYYYMMDDHHMMSS();
+    let timestamp = new Date().toLocaleTimeString("sv-SE");
     document.getElementById("stats_timestamp").innerText = timestamp;
 }
 
@@ -484,7 +484,7 @@ function saveUnlockAndNext(options) {
         let status = {
             source: user,
             name: options.status,
-            timestamp: new Date().toUTCString(),
+            timestamp: new Date().toLocaleString("sv-SE"),
         }
         let labels = [];
         if (options.label) {
