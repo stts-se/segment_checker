@@ -67,6 +67,10 @@ Use the file server included in the repository to serve the demo audio files:
 
 # Using the application server with other data
 
+## Defining the project
+
+Create a folder named after the project, for example `data/<projectname>`.
+
 ## Preparing data
 
 The source data consists of one JSON file per labelled segment, with the following required attributes:
@@ -93,12 +97,12 @@ Example:
     }
 
 
-Source data should be placed in the following folder: `data/<projectname>/source/`.
+Source data should be placed in a folder titled `source` inside the project folder. In this example, we will use `data/<projectname>/source`.
 
 
 ## Annotated data
 
-Annotated data will be saved in the following folder: `data/<projectname>/annotation/`. Each segment will be saved in a file named `<id>.json`
+Annotated data will be placed in a folder named `annotation`, inside the project folder. In this example, it will be `data/<projectname>/annotation/`. Each segment will be saved in a file named `<id>.json`
 
 Example:
 
