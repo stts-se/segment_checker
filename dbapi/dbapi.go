@@ -78,7 +78,7 @@ func (api *DBAPI) LoadData() error {
 	if os.IsNotExist(err) {
 		err = os.Mkdir(api.AnnotationDataDir, 0700)
 		if err != nil {
-			return fmt.Errorf("failed to create annotation folder %s : %v", api.AnnotationDataDir)
+			return fmt.Errorf("failed to create annotation folder %s : %v", api.AnnotationDataDir, err)
 		}
 		log.Info("dbapi Created annotation dir %s", api.AnnotationDataDir)
 	} else if !info.IsDir() {
