@@ -19,59 +19,81 @@ const debug = false
 
 type DBAPI struct {
 	SourceDataDir, AnnotationDataDir string
-	fileMutex                        *sync.RWMutex     // for file reading/writing
-	lockMutex                        *sync.RWMutex     // for segment locking
-	lockMap                          map[string]string // segment id -> user
+
+	dbMutex        *sync.RWMutex // for db read/write (files and in-memory saves)
+	sourceData     []protocol.SegmentPayload
+	annotationData map[string]protocol.AnnotationPayload
+
+	lockMapMutex *sync.RWMutex     // for segment locking
+	lockMap      map[string]string // segment id -> user
 }
 
 func NewDBAPI(projectDir string) *DBAPI {
 	res := DBAPI{
 		SourceDataDir:     path.Join(projectDir, "source"),
 		AnnotationDataDir: path.Join(projectDir, "annotation"),
-		fileMutex:         &sync.RWMutex{},
-		lockMutex:         &sync.RWMutex{},
-		lockMap:           map[string]string{},
+
+		dbMutex:        &sync.RWMutex{},
+		sourceData:     []protocol.SegmentPayload{},
+		annotationData: map[string]protocol.AnnotationPayload{},
+
+		lockMapMutex: &sync.RWMutex{},
+		lockMap:      map[string]string{},
 	}
 	return &res
 }
 
 func (api *DBAPI) LoadData() error {
+	var err error
 	if api.SourceDataDir == "" {
-		return fmt.Errorf("source data dir not provided")
+		return fmt.Errorf("source dir not provided")
 	}
 	if api.AnnotationDataDir == "" {
-		return fmt.Errorf("source data dir not provided")
+		return fmt.Errorf("annotation dir not provided")
 	}
 	info, err := os.Stat(api.SourceDataDir)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("source data dir does not exist: %s", api.SourceDataDir)
+		return fmt.Errorf("source dir does not exist: %s", api.SourceDataDir)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("source data dir is not a directory: %s", api.SourceDataDir)
+		return fmt.Errorf("source dir is not a directory: %s", api.SourceDataDir)
 	}
 	info, err = os.Stat(api.AnnotationDataDir)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("annotation data dir does not exist: %s", api.AnnotationDataDir)
+		return fmt.Errorf("annotation dir does not exist: %s", api.AnnotationDataDir)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("annotation data dir is not a directory: %s", api.AnnotationDataDir)
+		return fmt.Errorf("annotation dir is not a directory: %s", api.AnnotationDataDir)
 	}
-	// TODO: Load source data into memory + sort!
-	// TODO: Load annotation data into memory + sort!
-	segs, err := api.ListAllSegments()
+
+	api.dbMutex.RLock()
+	defer api.dbMutex.RUnlock()
+	api.sourceData, err = api.LoadSourceData()
 	if err != nil {
 		return err
 	}
-	log.Info("Loaded %d source files", len(segs))
+	log.Info("dbapi Loaded %d source files", len(api.sourceData))
+
+	api.annotationData, err = api.LoadAnnotationData()
+	if err != nil {
+		return err
+	}
+	log.Info("dbapi Loaded %d annotation files", len(api.annotationData))
+
+	err = api.validateData()
+	if err != nil {
+		return fmt.Errorf("data validation failed : %v", err)
+	}
+
 	return nil
 }
 
-func (api *DBAPI) listSourceFiles() []string {
+func (api *DBAPI) listJSONFiles(dir string) []string {
 	var files []string
-	filepath.Walk(api.SourceDataDir, func(path string, f os.FileInfo, _ error) error {
+	filepath.Walk(dir, func(pth string, f os.FileInfo, _ error) error {
 		if !f.IsDir() {
 			if filepath.Ext(f.Name()) == ".json" {
-				files = append(files, f.Name())
+				files = append(files, path.Join(dir, f.Name()))
 			}
 		}
 		return nil
@@ -80,13 +102,68 @@ func (api *DBAPI) listSourceFiles() []string {
 	return files
 }
 
-func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
+func (api *DBAPI) validateData() error {
+	sourceMap := map[string]protocol.SegmentPayload{}
+	for _, seg := range api.sourceData {
+		sourceMap[seg.ID] = seg
+	}
+	for id, anno := range api.annotationData {
+		seg, segExists := sourceMap[id]
+		if !segExists {
+			return fmt.Errorf("annotation data with id %s not found in source data", id)
+		}
+		if anno.URL != seg.URL {
+			return fmt.Errorf("annotation data has a different URL than source data: %s vs %s", anno.URL, seg.URL)
+		}
+		if anno.SegmentType != seg.SegmentType {
+			return fmt.Errorf("annotation data has a different segment type than source data: %s vs %s", anno.SegmentType, seg.SegmentType)
+		}
+	}
+	return nil
+}
+
+func validateSegment(segment protocol.SegmentPayload) error {
+	if segment.ID == "" {
+		return fmt.Errorf("no id")
+	}
+	if segment.URL == "" {
+		return fmt.Errorf("no URL")
+	}
+	if segment.SegmentType == "" {
+		return fmt.Errorf("no segment type")
+	}
+	if segment.Chunk.Start > segment.Chunk.End {
+		return fmt.Errorf("chunk end must be after chunk start, found chunk %#v", segment.Chunk)
+	}
+	return nil
+}
+
+func validateAnnotation(anno protocol.AnnotationPayload) error {
+	if anno.ID == "" {
+		return fmt.Errorf("no id")
+	}
+	if anno.URL == "" {
+		return fmt.Errorf("no URL")
+	}
+	if anno.SegmentType == "" {
+		return fmt.Errorf("no anno type")
+	}
+	if anno.Chunk.Start > anno.Chunk.End {
+		return fmt.Errorf("chunk end must be after chunk start, found chunk %#v", anno.Chunk)
+	}
+	if len(anno.StatusHistory) > 0 && anno.CurrentStatus.Name == "" {
+		return fmt.Errorf("status history exists, but no current status: %#v", anno)
+	}
+	return nil
+}
+
+func (api *DBAPI) LoadSourceData() ([]protocol.SegmentPayload, error) {
 	res := []protocol.SegmentPayload{}
-	files := api.listSourceFiles()
+	files := api.listJSONFiles(api.SourceDataDir)
 	seenIDs := make(map[string]bool)
 	for _, f := range files {
 		if strings.HasSuffix(f, ".json") {
-			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, f))
+			bts, err := ioutil.ReadFile(f)
 			if err != nil {
 				return res, fmt.Errorf("couldn't read file %s : %v", f, err)
 			}
@@ -95,11 +172,12 @@ func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
 			if err != nil {
 				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
 			}
-			if segment.ID == "" {
-				return res, fmt.Errorf("invalid json in source file %s (no id)", f)
+			err = validateSegment(segment)
+			if err != nil {
+				return res, fmt.Errorf("invalid json in source file %s : %v", f, err)
 			}
 			if _, seen := seenIDs[segment.ID]; seen {
-				return res, fmt.Errorf("duplicate source ids: %s", segment.ID)
+				return res, fmt.Errorf("duplicate ids for source data: %s", segment.ID)
 			}
 			seenIDs[segment.ID] = true
 			res = append(res, segment)
@@ -108,23 +186,47 @@ func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
 	return res, nil
 }
 
-func (api *DBAPI) ListUncheckedSegments() ([]protocol.SegmentPayload, error) {
+func (api *DBAPI) LoadAnnotationData() (map[string]protocol.AnnotationPayload, error) {
+	res := map[string]protocol.AnnotationPayload{}
+	files := api.listJSONFiles(api.AnnotationDataDir)
+	for _, f := range files {
+		if strings.HasSuffix(f, ".json") {
+			bts, err := ioutil.ReadFile(f)
+			if err != nil {
+				return res, fmt.Errorf("couldn't read file %s : %v", f, err)
+			}
+			var annotation protocol.AnnotationPayload
+			err = json.Unmarshal(bts, &annotation)
+			if err != nil {
+				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
+			}
+			err = validateAnnotation(annotation)
+			if err != nil {
+				return res, fmt.Errorf("invalid json in source file %s : %v", f, err)
+			}
+			if _, seen := res[annotation.ID]; seen {
+				return res, fmt.Errorf("duplicate ids for annotation data: %s", annotation.ID)
+			}
+			res[annotation.ID] = annotation
+		}
+	}
+	return res, nil
+}
+
+func (api *DBAPI) ListUncheckedSegments() []protocol.SegmentPayload {
 	res := []protocol.SegmentPayload{}
-	all, err := api.ListAllSegments()
-	for _, seg := range all {
-		f := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", seg.ID))
-		_, err := os.Stat(f)
-		if os.IsNotExist(err) && !api.Locked(seg.ID) {
+	for _, seg := range api.sourceData {
+		if _, annoExists := api.annotationData[seg.ID]; !annoExists {
 			res = append(res, seg)
 		}
 	}
-	return res, err
+	return res
 }
 
 func (api *DBAPI) Unlock(segmentID, user string) error {
-	log.Info("dbapi.Unlock %s %s", segmentID, user)
-	api.lockMutex.Lock()
-	defer api.lockMutex.Unlock()
+	log.Info("dbapi Unlock %s %s", segmentID, user)
+	api.lockMapMutex.Lock()
+	defer api.lockMapMutex.Unlock()
 	lockedBy, exists := api.lockMap[segmentID]
 	if !exists {
 		return fmt.Errorf("%v is not locked", segmentID)
@@ -151,16 +253,16 @@ func (api *DBAPI) UnlockAll(user string) (int, error) {
 }
 
 func (api *DBAPI) Locked(segmentID string) bool {
-	api.lockMutex.RLock()
-	defer api.lockMutex.RUnlock()
+	api.lockMapMutex.RLock()
+	defer api.lockMapMutex.RUnlock()
 	_, res := api.lockMap[segmentID]
 	return res
 }
 
 func (api *DBAPI) Lock(segmentID, user string) error {
-	log.Info("dbapi.Lock %s %s", segmentID, user)
-	api.lockMutex.Lock()
-	defer api.lockMutex.Unlock()
+	log.Info("dbapi Lock %s %s", segmentID, user)
+	api.lockMapMutex.Lock()
+	defer api.lockMapMutex.Unlock()
 	lockedBy, exists := api.lockMap[segmentID]
 	if exists {
 		return fmt.Errorf("%v is already locked by user %s", segmentID, lockedBy)
@@ -169,52 +271,28 @@ func (api *DBAPI) Lock(segmentID, user string) error {
 	return nil
 }
 
-func (api *DBAPI) CheckedSegmentStats() (int, map[string]int, error) {
+func (api *DBAPI) CheckedSegmentStats() (int, map[string]int) {
 	res := map[string]int{}
-	all, err := api.ListAllSegments()
-	n := 0
-	for _, seg := range all {
-		f := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", seg.ID))
-		_, err := os.Stat(f)
-		if os.IsNotExist(err) {
-			continue
-		}
-		bts, err := ioutil.ReadFile(f)
-		if err != nil {
-			return n, res, fmt.Errorf("couldn't read file %s : %v", f, err)
-		}
-		var segment protocol.AnnotationPayload
-		err = json.Unmarshal(bts, &segment)
-		if err != nil {
-			return n, res, fmt.Errorf("couldn't unmarshal json : %v", err)
-		}
-		n++
-		status := segment.CurrentStatus
-
+	for _, anno := range api.annotationData {
+		status := anno.CurrentStatus
 		res["status:"+status.Name]++
 		if len(status.Source) > 0 {
 			res["checked by:"+status.Source]++
 		}
-		for _, label := range segment.Labels {
+		for _, label := range anno.Labels {
 			res["label:"+label]++
 		}
 	}
-	return n, res, err
+	return len(api.annotationData), res
 }
 
 func (api *DBAPI) Stats() (map[string]int, error) {
-	allSegs, err := api.ListAllSegments()
+	allSegs, err := api.LoadSourceData()
 	if err != nil {
 		return map[string]int{}, fmt.Errorf("couldn't list segments: %v", err)
 	}
-	checkableSegs, err := api.ListUncheckedSegments()
-	if err != nil {
-		return map[string]int{}, fmt.Errorf("couldn't list checkable segments: %v", err)
-	}
-	nChecked, checkedStats, err := api.CheckedSegmentStats()
-	if err != nil {
-		return map[string]int{}, fmt.Errorf("couldn't list checked segments: %v", err)
-	}
+	checkableSegs := api.ListUncheckedSegments()
+	nChecked, checkedStats := api.CheckedSegmentStats()
 	res := map[string]int{
 		"total":     len(allSegs),
 		"checked":   nChecked,
@@ -258,62 +336,26 @@ func abs(i int64) int64 {
 	return -i
 }
 
-func (api *DBAPI) annotationFromSegment(segment protocol.SegmentPayload) (protocol.AnnotationPayload, error) {
-	var err error
-	annotationFile := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", segment.ID))
-	var annotation protocol.AnnotationPayload
-	_, err = os.Stat(annotationFile)
-	if err == nil {
-		bts, err := ioutil.ReadFile(annotationFile)
-		if err != nil {
-			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't read file %s : %v", annotationFile, err)
-		}
-		err = json.Unmarshal(bts, &annotation)
-		if err != nil {
-			return protocol.AnnotationPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", path.Base(annotationFile), err)
-		}
-		if annotation.ID == "" {
-			return annotation, fmt.Errorf("invalid json in annotation file %s (no id)", annotationFile)
-		}
-	} else {
-		annotation = protocol.AnnotationPayload{
-			SegmentPayload: segment,
-			CurrentStatus:  protocol.Status{Name: "unchecked"},
-		}
+func (api *DBAPI) annotationFromSegment(segment protocol.SegmentPayload) protocol.AnnotationPayload {
+	annotation, exists := api.annotationData[segment.ID]
+	if exists {
+		return annotation
 	}
-	return annotation, nil
-}
-
-func (api *DBAPI) segmentFromSource(sourceFile string) (protocol.SegmentPayload, error) {
-	bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile))
-	if err != nil {
-		return protocol.SegmentPayload{}, fmt.Errorf("couldn't read file %s : %v", sourceFile, err)
+	return protocol.AnnotationPayload{
+		SegmentPayload: segment,
+		CurrentStatus:  protocol.Status{Name: "unchecked"},
 	}
-	var segment protocol.SegmentPayload
-	err = json.Unmarshal(bts, &segment)
-	if err != nil {
-		return protocol.SegmentPayload{}, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile, err)
-	}
-	if segment.ID == "" {
-		return protocol.SegmentPayload{}, fmt.Errorf("invalid json in source file %s (no id)", sourceFile)
-	}
-	return segment, nil
 }
 
 func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (protocol.AnnotationPayload, bool, error) {
-	api.fileMutex.RLock()
-	defer api.fileMutex.RUnlock()
+	log.Info("dbapi GetNextSegment")
+	api.dbMutex.RLock()
+	defer api.dbMutex.RUnlock()
 
 	if debug {
-		log.Debug("GetNextSegment query: %#v", query)
+		log.Debug("dbapi GetNextSegment query: %#v", query)
 	}
 
-	files := api.listSourceFiles()
-	if len(files) == 0 {
-		return protocol.AnnotationPayload{}, false, fmt.Errorf("no source files found in folder %s", api.SourceDataDir)
-	}
-
-	log.Info("Loaded %d source data files", len(files))
 	var currIndex int
 	var seenCurrID int64
 	if query.RequestIndex != "" {
@@ -321,19 +363,12 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 		if query.RequestIndex == "first" {
 			i = 0
 		} else if query.RequestIndex == "last" {
-			i = len(files) - 1
+			i = len(api.sourceData) - 1
 		} else {
 			return protocol.AnnotationPayload{}, false, fmt.Errorf("unknown request index: %s", query.RequestIndex)
 		}
-		sourceFile := files[i]
-		segment, err := api.segmentFromSource(sourceFile)
-		if err != nil {
-			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create segment from source file %s : %v", sourceFile, err)
-		}
-		annotation, err := api.annotationFromSegment(segment)
-		if err != nil {
-			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create annotation from source file %s : %v", sourceFile, err)
-		}
+		segment := api.sourceData[i]
+		annotation := api.annotationFromSegment(segment)
 		if lockOnLoad {
 			api.Lock(annotation.ID, query.UserName)
 		}
@@ -341,16 +376,7 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 		return annotation, true, nil
 	} else if query.CurrID != "" {
 		seenCurrID = int64(-1)
-		for i, sourceFile := range files {
-			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, sourceFile))
-			if err != nil {
-				return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't read file %s : %v", sourceFile, err)
-			}
-			var segment protocol.SegmentPayload
-			err = json.Unmarshal(bts, &segment)
-			if err != nil {
-				return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't unmarshal json file %s : %v", sourceFile, err)
-			}
+		for i, segment := range api.sourceData {
 			if segment.ID == query.CurrID {
 				currIndex = i
 			}
@@ -359,25 +385,17 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 		seenCurrID = int64(0)
 		currIndex = 0
 	}
-	for i := currIndex; i >= 0 && i < len(files); {
-		sourceFile := files[i]
-		segment, err := api.segmentFromSource(sourceFile)
-		if err != nil {
-			return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create segment from source file %s : %v", sourceFile, err)
-		}
-
+	for i := currIndex; i >= 0 && i < len(api.sourceData); {
+		segment := api.sourceData[i]
 		if seenCurrID < 0 && segment.ID == query.CurrID {
 			seenCurrID = 0
 			if debug {
-				log.Debug("GetNextSegment index=%v seenCurrID=%v segment.ID=%v stepSize=%v CURR!", i+1, seenCurrID, segment.ID, query.StepSize)
+				log.Debug("dbapi GetNextSegment index=%v seenCurrID=%v segment.ID=%v stepSize=%v CURR!", i+1, seenCurrID, segment.ID, query.StepSize)
 			}
 		} else {
-			annotation, err := api.annotationFromSegment(segment)
-			if err != nil {
-				return protocol.AnnotationPayload{}, false, fmt.Errorf("couldn't create annotation from source file %s : %v", sourceFile, err)
-			}
+			annotation := api.annotationFromSegment(segment)
 			if debug {
-				log.Debug("GetNextSegment index=%v seenCurrID=%v segment.ID=%v stepSize=%v status=%v", i+1, seenCurrID, segment.ID, query.StepSize, annotation.CurrentStatus.Name)
+				log.Debug("dbapi GetNextSegment index=%v seenCurrID=%v segment.ID=%v stepSize=%v status=%v", i+1, seenCurrID, segment.ID, query.StepSize, annotation.CurrentStatus.Name)
 			}
 			if seenCurrID >= 0 && statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.ID) {
 				seenCurrID++
@@ -400,19 +418,26 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 }
 
 func (api *DBAPI) Save(annotation protocol.AnnotationPayload) error {
+	log.Info("dbapi Save %#v", annotation)
+
+	api.dbMutex.RLock()
+	defer api.dbMutex.RUnlock()
+
+	api.annotationData[annotation.ID] = annotation
+
+	// print to file
 	f := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", annotation.ID))
 	writeJSON, err := json.MarshalIndent(annotation, " ", " ")
 	if err != nil {
 		return fmt.Errorf("marhsal failed : %v", err)
 	}
 
-	api.fileMutex.Lock()
-	defer api.fileMutex.Unlock()
 	file, err := os.Create(f)
 	if err != nil {
 		return fmt.Errorf("failed create file %s : %v", f, err)
 	}
 	defer file.Close()
 	file.Write(writeJSON)
+
 	return nil
 }

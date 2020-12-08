@@ -181,7 +181,7 @@ func listenToClient(conn *websocket.Conn, clientID string) {
 			return
 		}
 
-		log.Info("Payload received over websocket: %#v\n", msg)
+		//log.Info("Payload received over websocket: %#v\n", msg)
 
 		switch msg.MessageType {
 		case "stats":
