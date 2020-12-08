@@ -43,7 +43,7 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 
 # Demo application server
 
-This repository includes audio based on the Swedish Wikipedia page about easy to read texts: https://sv.wikipedia.org/wiki/L%C3%A4ttl%C3%A4st
+This repository includes audio based on the Swedish Wikipedia page about easy to read texts: [https://sv.wikipedia.org/wiki/Lättläst](https://sv.wikipedia.org/wiki/L%C3%A4ttl%C3%A4st)
 
 Part of the page has been recorded, and pauses have been labelled automatically.
 
