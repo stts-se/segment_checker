@@ -72,9 +72,11 @@ Use the file server included in the repository to serve the demo audio files:
 The source data consists of one JSON file per labelled segment, with the following required attributes:
 
 * `id`: should be unique within the project
-* `url`: audio URL (audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application server_)
+* `url`: audio URL[1]
 * `segment_type`: "silence" or "e" (the vowel)
 * `chunk`: start and end time (milliseconds) for the labelled segment
+
+[1] Audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application server_
 
 
 Example:
@@ -96,7 +98,7 @@ Source data should be placed in the following folder: `data/<projectname>/source
 
 ## Annotated data
 
-Annotated data will be saved in the following folder: `data/<projectname>/annotation/`. Each segment will be saved in a file named `<segment-id>.json`
+Annotated data will be saved in the following folder: `data/<projectname>/annotation/`. Each segment will be saved in a file named `<id>.json`
 
 Example:
 
