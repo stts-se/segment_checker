@@ -94,7 +94,7 @@ The source data consists of one JSON file per labelled segment, with the followi
 * `segment_type`: "silence" or "e" (the vowel)
 * `chunk`: start and end time (milliseconds) for the labelled segment
 
-[1] Audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application server_
+[1] Audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application_
 
 
 Example:
