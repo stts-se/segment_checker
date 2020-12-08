@@ -54,8 +54,12 @@ function setEnabled(enable) {
         document.getElementById("play-left"),
         document.getElementById("reset"),
         document.getElementById("quit"),
-        // document.getElementById("next"),
-        // document.getElementById("prev"),
+        document.getElementById("next"),
+        document.getElementById("prev"),
+        document.getElementById("first"),
+        document.getElementById("last"),
+        document.getElementById("next_any"),
+        document.getElementById("prev_any"),
     ];
     if (enable) {
         for (let i = 0; i < buttons.length; i++) {
@@ -66,6 +70,8 @@ function setEnabled(enable) {
                 btn.disabled = false;
             }
         }
+	document.getElementById("start").disabled = true;
+        document.getElementById("start").classList.add("disabled");
         document.getElementById("comment").removeAttribute("readonly");
     } else {
         document.getElementById("comment").setAttribute("readonly", "readonly");
@@ -76,6 +82,8 @@ function setEnabled(enable) {
                 btn.disabled = true;
             }
         }
+	document.getElementById("start").disabled = false;
+        document.getElementById("start").classList.remove("disabled");
     }
 }
 
@@ -159,6 +167,12 @@ if (document.getElementById("last")) {
     document.getElementById("last").addEventListener("click", function (evt) {
         if (!evt.target.disabled)
             saveUnlockAndNext({ requestIndex: "last" });
+    });
+}
+if (document.getElementById("start")) {
+    document.getElementById("start").addEventListener("click", function (evt) {
+        if (!evt.target.disabled)
+            saveUnlockAndNext({ stepSize: 1 });
     });
 }
 if (document.getElementById("next")) {
@@ -446,6 +460,7 @@ function createQuery(stepSize, requestIndex, requestStatus) {
 
 
 function saveUnlockAndNext(options) {
+    setEnabled(false);
     console.log("saveUnlockAndNext called with options", options);
     let user = document.getElementById("username").innerText;
     if ((!user) || user === "") {

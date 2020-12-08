@@ -101,6 +101,7 @@ func (api *DBAPI) ListUncheckedSegments() ([]protocol.SegmentPayload, error) {
 }
 
 func (api *DBAPI) Unlock(segmentID, user string) error {
+	log.Info("dbapi.Unlock %s %s", segmentID, user)
 	api.lockMutex.Lock()
 	defer api.lockMutex.Unlock()
 	lockedBy, exists := api.lockMap[segmentID]
@@ -279,6 +280,7 @@ func (api *DBAPI) segmentFromSource(sourceFile string) (protocol.SegmentPayload,
 }
 
 func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (protocol.AnnotationPayload, bool, error) {
+	log.Info("GetNextSegment %#v %v", query, lockOnLoad)
 	api.fileMutex.RLock()
 	defer api.fileMutex.RUnlock()
 
