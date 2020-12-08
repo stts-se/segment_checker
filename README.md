@@ -72,8 +72,11 @@ Use the file server included in the repository to serve the demo audio files:
 
 ## 3. Start the application server
 
-1. `./serv -project data/demo_lattlast`
-2. Visit `http://localhost:7371` using your browser (Firefox is recommended)
+`./serv -project data/demo_lattlast`
+
+## 4. Use the application
+
+Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
 
 # Using the application server with other data
@@ -134,8 +137,11 @@ Example:
     }
 
 
-## Starting the application server
+## Start the application server
 
-1. `./serv -project data/<projectname>`
-2. Visit `http://localhost:7371` using your browser (Firefox is recommended)
+ `./serv -project data/<projectname>`
+
+## Use the application
+
+Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
