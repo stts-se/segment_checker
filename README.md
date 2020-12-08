@@ -45,7 +45,7 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 
 ## Requirements
 
-[ffmpeg](https://ffmpeg.org/)
+* [ffmpeg](https://ffmpeg.org/)
 
 ## Install
 
