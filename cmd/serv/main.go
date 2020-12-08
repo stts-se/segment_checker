@@ -416,12 +416,11 @@ var db *dbapi.DBAPI
 
 // Config for server
 type Config struct {
-	Host              *string `json:"host"`
-	Port              *string `json:"port"`
-	ServeDir          *string `json:"static_dir"`
-	SourceDataDir     *string `json:"source_data_dir"`
-	AnnotationDataDir *string `json:"annotation_data_dir"`
-	Debug             *bool   `json:"debug"`
+	Host       *string `json:"host"`
+	Port       *string `json:"port"`
+	ServeDir   *string `json:"static_dir"`
+	ProjectDir *string `json:"project_dir"`
+	Debug      *bool   `json:"debug"`
 }
 
 func main() {
@@ -433,8 +432,7 @@ func main() {
 	cfg.Host = flag.String("host", "localhost", "Server `host`")
 	cfg.Port = flag.String("port", "7371", "Server `port`")
 	cfg.ServeDir = flag.String("serve", "static", "Serve static `folder`")
-	cfg.SourceDataDir = flag.String("source", "", "Source data `folder`")
-	cfg.AnnotationDataDir = flag.String("annotation", "", "Annotation data `folder`")
+	cfg.ProjectDir = flag.String("project", "", "Project `folder`")
 
 	cfg.Debug = flag.Bool("debug", false, "Debug mode")
 	protocol := "http"
@@ -467,18 +465,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *cfg.SourceDataDir == "" {
-		fmt.Fprintf(os.Stderr, "Required flag source not set\n")
-		flag.Usage()
-		os.Exit(1)
-	}
-	if *cfg.AnnotationDataDir == "" {
-		fmt.Fprintf(os.Stderr, "Required flag annotation not set\n")
+	if *cfg.ProjectDir == "" {
+		fmt.Fprintf(os.Stderr, "Required flag project not set\n")
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	db = dbapi.NewDBAPI(*cfg.SourceDataDir, *cfg.AnnotationDataDir)
+	db = dbapi.NewDBAPI(*cfg.ProjectDir)
 	err = db.LoadData()
 	if err != nil {
 		log.Fatal("Couldn't load data: %v", err)

@@ -24,10 +24,10 @@ type DBAPI struct {
 	lockMap                          map[string]string // segment id -> user
 }
 
-func NewDBAPI(sourceDataDir, annotationDataDir string) *DBAPI {
+func NewDBAPI(projectDir string) *DBAPI {
 	res := DBAPI{
-		SourceDataDir:     sourceDataDir,
-		AnnotationDataDir: annotationDataDir,
+		SourceDataDir:     path.Join(projectDir, "source"),
+		AnnotationDataDir: path.Join(projectDir, "annotation"),
 		fileMutex:         &sync.RWMutex{},
 		lockMutex:         &sync.RWMutex{},
 		lockMap:           map[string]string{},
@@ -39,33 +39,54 @@ func (api *DBAPI) LoadData() error {
 	if api.SourceDataDir == "" {
 		return fmt.Errorf("source data dir not provided")
 	}
+	if api.AnnotationDataDir == "" {
+		return fmt.Errorf("source data dir not provided")
+	}
 	info, err := os.Stat(api.SourceDataDir)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("provided source data dir does not exist: %s", api.SourceDataDir)
+		return fmt.Errorf("source data dir does not exist: %s", api.SourceDataDir)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("provided source data dir is not a directory: %s", api.SourceDataDir)
+		return fmt.Errorf("source data dir is not a directory: %s", api.SourceDataDir)
+	}
+	info, err = os.Stat(api.AnnotationDataDir)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("annotation data dir does not exist: %s", api.AnnotationDataDir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("annotation data dir is not a directory: %s", api.AnnotationDataDir)
 	}
 	// TODO: Load source data into memory + sort!
 	// TODO: Load annotation data into memory + sort!
-	_, err = api.ListAllSegments()
+	segs, err := api.ListAllSegments()
 	if err != nil {
 		return err
 	}
+	log.Info("Loaded %d source files", len(segs))
 	return nil
+}
+
+func (api *DBAPI) listSourceFiles() []string {
+	var files []string
+	filepath.Walk(api.SourceDataDir, func(path string, f os.FileInfo, _ error) error {
+		if !f.IsDir() {
+			if filepath.Ext(f.Name()) == ".json" {
+				files = append(files, f.Name())
+			}
+		}
+		return nil
+	})
+	sort.Slice(files, func(i, j int) bool { return files[i] < files[j] })
+	return files
 }
 
 func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
 	res := []protocol.SegmentPayload{}
-	files, err := ioutil.ReadDir(api.SourceDataDir)
-	sort.Slice(files, func(i, j int) bool { return files[i].Name() < files[j].Name() })
-	if err != nil {
-		return res, fmt.Errorf("couldn't list files in folder %s : %v", api.SourceDataDir, err)
-	}
+	files := api.listSourceFiles()
 	seenIDs := make(map[string]bool)
 	for _, f := range files {
-		if strings.HasSuffix(f.Name(), ".json") {
-			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, f.Name()))
+		if strings.HasSuffix(f, ".json") {
+			bts, err := ioutil.ReadFile(path.Join(api.SourceDataDir, f))
 			if err != nil {
 				return res, fmt.Errorf("couldn't read file %s : %v", f, err)
 			}
@@ -75,7 +96,7 @@ func (api *DBAPI) ListAllSegments() ([]protocol.SegmentPayload, error) {
 				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
 			}
 			if segment.ID == "" {
-				return res, fmt.Errorf("invalid json in source file %s (no id)", f.Name())
+				return res, fmt.Errorf("invalid json in source file %s (no id)", f)
 			}
 			if _, seen := seenIDs[segment.ID]; seen {
 				return res, fmt.Errorf("duplicate source ids: %s", segment.ID)
@@ -280,7 +301,6 @@ func (api *DBAPI) segmentFromSource(sourceFile string) (protocol.SegmentPayload,
 }
 
 func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (protocol.AnnotationPayload, bool, error) {
-	log.Info("GetNextSegment %#v %v", query, lockOnLoad)
 	api.fileMutex.RLock()
 	defer api.fileMutex.RUnlock()
 
@@ -288,18 +308,11 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 		log.Debug("GetNextSegment query: %#v", query)
 	}
 
-	var files []string
-	filepath.Walk(api.SourceDataDir, func(path string, f os.FileInfo, _ error) error {
-		if !f.IsDir() {
-			if filepath.Ext(f.Name()) == ".json" {
-				files = append(files, f.Name())
-			}
-		}
-		return nil
-	})
+	files := api.listSourceFiles()
 	if len(files) == 0 {
 		return protocol.AnnotationPayload{}, false, fmt.Errorf("no source files found in folder %s", api.SourceDataDir)
 	}
+
 	log.Info("Loaded %d source data files", len(files))
 	var currIndex int
 	var seenCurrID int64
