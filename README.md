@@ -49,17 +49,17 @@ Part of the page has been recorded, and pauses have been labelled automatically.
 
 You can use the demo data to review the pauses.
 
-## Unpack demo data
+## 1. Unpack demo data
 
 `unzip demo_data_lattlast.zip`
 
-## Serving audio
+## 2. Serving audio
 
 Use the file server included in the repository to serve the demo audio files:
 
 `./file_server data/demo_lattlast/audio`
 
-## Starting the application server
+## 3. Start the application server
 
 1. `./serv -project data/demo_lattlast`
 2. Visit `http://localhost:7371` using your browser (Firefox is recommended)
