@@ -32,11 +32,6 @@ The wavesurfer-js library is licensed under BSD-3 (https://opensource.org/licens
 * [ffmpeg](https://ffmpeg.org/)
 
 
-
-# Install pre-compiled binaries
-
-
-
 # Demo application
 
 This repository includes audio based on the Swedish Wikipedia page about easy to read texts: [https://sv.wikipedia.org/wiki/Lättläst](https://sv.wikipedia.org/wiki/L%C3%A4ttl%C3%A4st)
@@ -45,32 +40,32 @@ Part of the page has been recorded, and pauses have been labelled automatically.
 
 You can use the demo data to review the pauses.
 
-## 1. Unpack demo data
+1. Unpack demo data
 
 unzip demo_data_lattlast.zip
 
-## 2. Serve audio
+2. Serve audio
 
 Use the file server included in the repository to serve the demo audio files:
 
 ./file_server data/demo_lattlast/audio
 
-## 3. Start the application server
+3. Start the application server
 
 ./serv -project data/demo_lattlast
 
-## 4. Use the application
+4. Use the application
 
 Visit http://localhost:7371 using your browser (Firefox is recommended)
 
 
 # Using the application with other data
 
-## 1. Define the project
+1. Define the project
 
 Create a folder named after the project, for example 'data/<projectname>'.
 
-## 2. Prepare data
+2. Prepare data
 
 The source data consists of one JSON file per labelled segment, with the following required attributes:
 
@@ -99,7 +94,7 @@ Example:
 Source data should be placed in a folder titled 'source' inside the project folder. In this example, we will use 'data/<projectname>/source'.
 
 
-## 3. Start the application server
+3. Start the application server
 
 ./serv -project data/<projectname>
 
