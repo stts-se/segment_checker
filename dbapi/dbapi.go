@@ -17,7 +17,10 @@ import (
 	"github.com/stts-se/segment_checker/protocol"
 )
 
-const debug = false
+const (
+	debug         = false
+	testURLAccess = true
+)
 
 type DBAPI struct {
 	ProjectDir, SourceDataDir, AnnotationDataDir string
@@ -158,13 +161,15 @@ func validateSegment(segment protocol.SegmentPayload) error {
 	if segment.URL == "" {
 		return fmt.Errorf("no URL")
 	}
-	urlResp, err := http.Get(segment.URL)
-	if err != nil {
-		return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
-	}
-	defer urlResp.Body.Close()
-	if urlResp.StatusCode != http.StatusOK {
-		return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+	if testURLAccess {
+		urlResp, err := http.Get(segment.URL)
+		if err != nil {
+			return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
+		}
+		defer urlResp.Body.Close()
+		if urlResp.StatusCode != http.StatusOK {
+			return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+		}
 	}
 
 	return nil
@@ -206,7 +211,7 @@ func (api *DBAPI) LoadSourceData() ([]protocol.SegmentPayload, error) {
 			}
 			err = validateSegment(segment)
 			if err != nil {
-				return res, fmt.Errorf("invalid json in source file %s : %v", f, err)
+				return res, fmt.Errorf("invalid segment file %s : %v", f, err)
 			}
 			if _, seen := seenIDs[segment.ID]; seen {
 				return res, fmt.Errorf("duplicate ids for source data: %s", segment.ID)

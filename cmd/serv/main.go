@@ -424,6 +424,7 @@ type Config struct {
 	Host       *string `json:"host"`
 	Port       *string `json:"port"`
 	ServeDir   *string `json:"static_dir"`
+	BlockAudio *bool   `json:"block_audio"`
 	ProjectDir *string `json:"project_dir"`
 	Debug      *bool   `json:"debug"`
 	Ffmpeg     *string `json:"ffmpeg"`
@@ -438,6 +439,7 @@ func main() {
 	cfg.Host = flag.String("host", "localhost", "Server `host`")
 	cfg.Port = flag.String("port", "7371", "Server `port`")
 	cfg.ServeDir = flag.String("serve", "static", "Serve static `folder`")
+	cfg.BlockAudio = flag.Bool("block_audio", false, "Block audio folder from being served")
 	cfg.ProjectDir = flag.String("project", "", "Project `folder`")
 	cfg.Ffmpeg = flag.String("ffmpeg", "ffmpeg", "Ffmpeg command/path")
 
@@ -492,7 +494,9 @@ func main() {
 
 	r.HandleFunc("/doc/", generateDoc).Methods("GET")
 	r.HandleFunc("/ws/{client_id}", wsHandler)
-	r.HandleFunc("/audio/{file}", serveAudio).Methods("GET")
+	if !*cfg.BlockAudio {
+		r.HandleFunc("/audio/{file}", serveAudio).Methods("GET")
+	}
 
 	docs := make(map[string]string)
 	err = r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
@@ -511,6 +515,14 @@ func main() {
 		log.Fatal(msg)
 	}
 
+	info, err := os.Stat(*cfg.ServeDir)
+	if os.IsNotExist(err) {
+		log.Fatal("Serve dir %s does not exist", *cfg.ServeDir)
+	}
+	if !info.IsDir() {
+		log.Fatal("Serve dir %s is not a directory", *cfg.ServeDir)
+	}
+
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(*cfg.ServeDir))))
 
 	srv := &http.Server{
@@ -519,15 +531,21 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	log.Info("Server started on %s://%s", protocol, *cfg.Host+":"+*cfg.Port)
+	log.Info("Starting server on %s://%s", protocol, *cfg.Host+":"+*cfg.Port)
 	log.Info("Serving folder %s", *cfg.ServeDir)
+
+	go func() {
+		// wait for the server to start, and then load data, including URL access tests
+		// (which won't work if it's run before the server is started)
+		time.Sleep(1000)
+		err = db.LoadData()
+		if err != nil {
+			log.Fatal("Couldn't load data: %v", err)
+		}
+	}()
+
 	if err = srv.ListenAndServe(); err != nil {
 		log.Fatal("Server failure: %v", err)
-	}
-
-	err = db.LoadData()
-	if err != nil {
-		log.Fatal("Couldn't load data: %v", err)
 	}
 
 }
