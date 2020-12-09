@@ -615,11 +615,16 @@ onload = function () {
             saveUnlockAndNext({ stepSize: 1 });
     }
     ws.onclose = function () {
-        logMessage("Websocket closed");
+	let msg = "Application was closed from server";
+        logError(msg);
 	clear();
 	setEnabled(false);
+	enableStart(false);
+	document.getElementById("unlock-all").disabled = true;
+	document.getElementById("unlock-all").classList.add("disabled");
+
 	ws = undefined;
-	alert("Application was closed from server");
+	alert(msg);
     }
     ws.onmessage = function (evt) {
         let resp = JSON.parse(evt.data);
