@@ -61,7 +61,7 @@ Visit http://localhost:7371 using your browser (Firefox is recommended)
 
 1. Define the project
 
-Create a folder named after the project, for example 'projects/<projectname>'.
+Create a 'project folder' named after the project, for example 'projects/<projectname>'.
 
 2. Prepare data
 
@@ -86,7 +86,7 @@ Example:
     }
 
 
-Source data should be placed in a folder titled 'source' inside the project folder. In this example, we will use 'projects/<projectname>/source'.
+Source data should be placed in a folder titled 'source' inside the project folder. In this example, we will use '<project folder>/source'.
 
 
 3. Serve audio
@@ -95,7 +95,7 @@ If you want the application to serve the audio, place your audio files in <proje
 
 4. Start the application server
 
-./serv -project projects/<projectname>
+./serv -project <project folder>
 
 5. Use the application
 
@@ -103,7 +103,7 @@ Visit http://localhost:7371 using your browser (Firefox is recommended)
 
 ## Annotated data
 
-Annotated data will be placed in a folder named 'annotation', inside the project folder. In this example, it will be 'projects/<projectname>/annotation/'. Each segment will be saved in a file named '<id>.json'
+Annotated data will be placed in a folder named 'annotation', inside the project folder. In this example, it will be '<project folder>/annotation/'. Each segment will be saved in a file named '<id>.json'
 
 Example:
 
