@@ -3,6 +3,9 @@
 
 Tool for revising segment boundaries. Developed by [STTS](https://stts.se) on behalf of [TMH](https://www.speech.kth.se).
 
+<img src="screenshot.png">
+
+
 ## Functionality
 
 * manually adjust segment boundaries, one chunk at a time
