@@ -97,6 +97,9 @@ If you want the application to serve the audio, place your audio files in <proje
 
 ./serv -project <project folder>
 
+For external access, use the 'host' flag to set an explicit hostname/IP.
+
+
 5. Use the application
 
 Visit http://localhost:7371 using your browser (Firefox is recommended)
