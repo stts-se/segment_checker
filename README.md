@@ -62,13 +62,13 @@ You can use the demo data to review the pauses.
 
 Use the file server included in the repository to serve the demo audio files:
 
-`go run file_server/main.go data/demo_lattlast/audio`
+`go run file_server/main.go projects/demo_lattlast/audio`
 
 ## 3. Start the application server
 
 This command will start the server on `localhost`:
 
-`go run cmd/serv/main-go -serve cmd/serv/static -project data/demo_lattlast`
+`go run cmd/serv/main-go -serve cmd/serv/static -project projects/demo_lattlast`
 
 For external access, use the `host` flag to set an explicit hostname/IP.
 
@@ -81,7 +81,7 @@ Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
 ## 1. Define the project
 
-Create a folder named after the project, for example `data/<projectname>`.
+Create a folder named after the project, for example `projects/<projectname>`.
 
 ## 2. Prepare data
 
@@ -97,7 +97,7 @@ The source data consists of one JSON file per labelled segment, with the followi
 
 Example:
     
-     $ cat data/demo_lattlast/source/lattlast_ogg_0001.json
+     $ cat projects/demo_lattlast/source/lattlast_ogg_0001.json
      {
        "id": "lattlast_ogg_0001",
        "url": "http://localhost:7381/lattlast.ogg",
@@ -109,12 +109,12 @@ Example:
     }
 
 
-Source data should be placed in a folder titled `source` inside the project folder. In this example, we will use `data/<projectname>/source`.
+Source data should be placed in a folder titled `source` inside the project folder. In this example, we will use `projects/<projectname>/source`.
 
 
 ## 3. Start the application server
 
-`go run cmd/serv/main-go -serve cmd/serv/static -project data/<projectname>`
+`go run cmd/serv/main-go -serve cmd/serv/static -project projects/<projectname>`
 
 4. Use the application
 
@@ -122,11 +122,11 @@ Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
 ## Annotated data
 
-Annotated data will be placed in a folder named `annotation`, inside the project folder. In this example, it will be `data/<projectname>/annotation/`. Each segment will be saved in a file named `<id>.json`
+Annotated data will be placed in a folder named `annotation`, inside the project folder. In this example, it will be `projects/<projectname>/annotation/`. Each segment will be saved in a file named `<id>.json`
 
 Example:
 
-    $ cat data/demo_lattlast/annotation/lattlast_ogg_0001.json
+    $ cat projects/demo_lattlast/annotation/lattlast_ogg_0001.json
     {
       "id": "lattlast_ogg_0001",
       "url": "http://localhost:7381/lattlast.ogg",
