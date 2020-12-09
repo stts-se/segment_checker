@@ -42,7 +42,7 @@ You can use the demo data to review the pauses.
 
 1. Unpack demo data
 
-unzip demo_data_lattlast.zip
+unzip demo_project_lattlast.zip
 
 2. Start the application server
 

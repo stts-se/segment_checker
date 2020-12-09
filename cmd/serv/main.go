@@ -453,8 +453,8 @@ func main() {
 	log.Info("Server config: %#v", string(cfgJSON))
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s <options> <folder to serve>\n", cmd)
-		fmt.Fprintf(os.Stderr, "Options:\n")
+		fmt.Fprintf(os.Stderr, "Usage: %s <flags>\n", cmd)
+		fmt.Fprintf(os.Stderr, "Flags:\n")
 		flag.PrintDefaults()
 	}
 
@@ -476,7 +476,7 @@ func main() {
 
 	_, err = os.Stat(*cfg.ServeDir)
 	if os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Served folder %s does not exist\n", *cfg.ServeDir)
+		fmt.Fprintf(os.Stderr, "Required flag serve points to a non-existing folder: %s\n", *cfg.ServeDir)
 		flag.Usage()
 		os.Exit(1)
 	}
