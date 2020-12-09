@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 
-	"github.com/rsc/getopt"
+	//	"github.com/rsc/getopt"
 
 	"github.com/stts-se/segment_checker/dbapi"
 	"github.com/stts-se/segment_checker/log"
@@ -438,10 +438,10 @@ func main() {
 	protocol := "http"
 
 	// Shorthand aliases
-	getopt.Aliases(
-		"h", "host",
-		"p", "port",
-	)
+	// getopt.Aliases(
+	// 	"h", "host",
+	// 	"p", "port",
+	// )
 
 	help := flag.Bool("help", false, "Print usage and exit")
 	flag.Parse()
@@ -452,7 +452,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s <options> <folder to serve>\n", cmd)
 		fmt.Fprintf(os.Stderr, "Options:\n")
-		getopt.PrintDefaults()
+		flag.PrintDefaults()
 	}
 
 	if *help {
