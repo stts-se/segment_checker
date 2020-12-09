@@ -26,21 +26,18 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 
 
 
-# Install from source
+# Installation
 
-## Requirements
+Requirements
 
 * [golang 1.15](https://golang.org/dl/)
 * [ffmpeg](https://ffmpeg.org/)
 
-## Build from source
-
 1. Clone the repository: `git clone https://github.com:stts-se/segment_checker`
 2. Change directory: `cd segment_checker`
-3. Build the application: `make`
-4. Unpack the output file `segche.zip` in a separate folder
 
 
+<!--
 # Install pre-compiled binaries
 
 ## Requirements
@@ -50,6 +47,8 @@ The wavesurfer-js library is licensed under [BSD-3](https://opensource.org/licen
 ## Install
 
 Unpack the pre-compiled release file `segche.zip`.
+
+-->
 
 
 # Demo application
@@ -68,11 +67,11 @@ You can use the demo data to review the pauses.
 
 Use the file server included in the repository to serve the demo audio files:
 
-`./file_server data/demo_lattlast/audio`
+`go run file_server/main.go data/demo_lattlast/audio`
 
 ## 3. Start the application server
 
-`./serv -project data/demo_lattlast`
+`go run cmd/serv/main-go -serve cmd/serv/static -project data/demo_lattlast`
 
 ## 4. Use the application
 
@@ -139,7 +138,7 @@ Example:
 
 ## Start the application server
 
- `./serv -project data/<projectname>`
+`go run cmd/serv/main-go -serve cmd/serv/static -project data/<projectname>`
 
 ## Use the application
 
