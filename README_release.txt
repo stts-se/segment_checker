@@ -38,7 +38,7 @@ This repository includes audio based on the Swedish Wikipedia page about easy to
 
 Part of the page has been recorded, and pauses have been labelled automatically.
 
-You can use the demo data to review the pauses.
+You can use the demo data to review the pauses. Please note that the demo data in this form will only work for usage on localhost.
 
 1. Unpack demo data
 
