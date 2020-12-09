@@ -614,7 +614,7 @@ onload = function () {
 	clear();
 	setEnabled(false);
 	ws = undefined;
-	alert("Application server was closed from server");
+	alert("Application was closed from server");
     }
     ws.onmessage = function (evt) {
         let resp = JSON.parse(evt.data);
