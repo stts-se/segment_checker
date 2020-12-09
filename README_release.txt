@@ -38,7 +38,7 @@ This repository includes audio based on the Swedish Wikipedia page about easy to
 
 Part of the page has been recorded, and pauses have been labelled automatically.
 
-You can use the demo data to review the pauses. Please note that the demo data in this form will only work for usage on localhost.
+You can use the demo data to review the pauses.
 
 1. Unpack demo data
 
@@ -52,7 +52,12 @@ Use the file server included in the repository to serve the demo audio files:
 
 3. Start the application server
 
+This command will start the server on localhost:
+
 ./serv -project data/demo_lattlast
+
+For external access, use the 'host' flag to set an explicit hostname/IP.
+
 
 4. Use the application
 
