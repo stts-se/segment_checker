@@ -42,8 +42,6 @@ function logMessage(msg) {
 function lockGUI() {
     setEnabled(false);
     enableStart(false);
-    // document.getElementById("unlock-all").disabled = true;
-    // document.getElementById("unlock-all").classList.add("disabled");
 }
 
 function enableStart(enable) {
@@ -57,6 +55,9 @@ function enableStart(enable) {
 }
 
 function setEnabled(enable) {
+    document.getElementById("unlock-all").disabled = false;
+    document.getElementById("unlock-all").classList.remove("disabled");
+
     enabled = enable;
     let buttons = [
         document.getElementById("save-badsample"),
@@ -476,7 +477,7 @@ function saveUnlockAndNext(options) {
     console.log("saveUnlockAndNext called with options", options);
     let user = document.getElementById("username").innerText;
     if ((!user) || user === "") {
-        let msg = "Username unset -- cannot save!";
+        let msg = "Username unset!";
         alert(msg);
 	setEnabled(false);
         logError(msg);
@@ -546,7 +547,10 @@ function saveUnlockAndNext(options) {
 onload = function () {
 
     setEnabled(false);
+    lockGUI();
     clear();
+    document.getElementById("unlock-all").disabled = true;
+    document.getElementById("unlock-all").classList.add("disabled");
 
     let params = new URLSearchParams(window.location.search);
     if (params.get('context')) {
@@ -586,13 +590,14 @@ onload = function () {
 	let suggest = localStorage.getItem("username");
 	if (!suggest || suggest === null)
 	    suggest = "";
-        let username = prompt("User name", suggest).toLowerCase();
+        let username = prompt("User name", suggest);
 	if (!username || username === null || username.trim() === "") {
             let msg = "Username unset!";
             logError(msg);
+	    alert(msg);
             return;
 	}
-        gloptions.userName = username;
+        gloptions.userName = username.toLowerCase();
     }
     document.getElementById("username").innerText = gloptions.userName;
     localStorage.setItem("username", gloptions.userName);
