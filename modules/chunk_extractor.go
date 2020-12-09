@@ -42,11 +42,14 @@ func (ch ChunkExtractor) ProcessFileWithContext(audioFile string, chunk protocol
 
 	ext := filepath.Ext(audioFile)
 	ext = strings.TrimPrefix(ext, ".")
-	if encoding != "" {
-		ext = encoding
-	} else {
+	if encoding == "" {
 		encoding = ext
 	}
+	// if encoding != "" {
+	// 	ext = encoding
+	// } else {
+	// 	encoding = ext
+	// }
 
 	btss, err := ch.ProcessFile(audioFile, []protocol.Chunk{processChunk}, encoding)
 	if err != nil {

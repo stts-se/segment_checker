@@ -55,6 +55,9 @@ func (ch Chunker) Process(audioFile string) ([]protocol.Chunk, error) {
 				return res, fmt.Errorf("couldn't parse ffmpeg output line %s : %v", s, err)
 			}
 			dur, err := time.ParseDuration(fmtS)
+			if err != nil {
+				return res, fmt.Errorf("couldn't parse duration %s : %v", fmtS, err)
+			}
 			totalDuration = dur.Milliseconds() + ms
 			//log.Println("totalDuration", totalDuration)
 		}
