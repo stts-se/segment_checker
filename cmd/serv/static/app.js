@@ -569,13 +569,22 @@ onload = function () {
         }
     }
 
+    let requestIndex
+    if (params.get('request_index')) {
+        requestIndex = parseInt(params.get('request_index').toLowerCase())-1;
+	requestIndex = requestIndex + "";
+    }
+
     console.log("gloptions", gloptions);
 
     let url = wsBase + "/ws/" + clientID;
     ws = new WebSocket(url);
     ws.onopen = function () {
         logMessage("Websocket opened");
-        saveUnlockAndNext({ stepSize: 1 });
+	if (requestIndex)
+            saveUnlockAndNext({ requestIndex: requestIndex });
+	else
+            saveUnlockAndNext({ stepSize: 1 });
     }
     ws.onmessage = function (evt) {
         let resp = JSON.parse(evt.data);

@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -396,7 +397,12 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 		} else if query.RequestIndex == "last" {
 			i = len(api.sourceData) - 1
 		} else {
-			return protocol.AnnotationPayload{}, false, fmt.Errorf("unknown request index: %s", query.RequestIndex)
+			reqI, err := strconv.Atoi(query.RequestIndex)
+			if err == nil && reqI >= 0 && reqI < len(api.sourceData) {
+				i = reqI
+			} else {
+				return protocol.AnnotationPayload{}, false, fmt.Errorf("invalid request index: %s", query.RequestIndex)
+			}
 		}
 		segment := api.sourceData[i]
 		annotation := api.annotationFromSegment(segment)
