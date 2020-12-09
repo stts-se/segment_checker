@@ -58,7 +58,7 @@ You can use the demo data to review the pauses.
 
 `unzip demo_data_lattlast.zip`
 
-## 2. Serving audio
+## 2. Serve audio
 
 Use the file server included in the repository to serve the demo audio files:
 
@@ -75,11 +75,11 @@ Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
 # Using the application with other data
 
-## 1. Defining the project
+## 1. Define the project
 
 Create a folder named after the project, for example `data/<projectname>`.
 
-## 2. Preparing data
+## 2. Prepare data
 
 The source data consists of one JSON file per labelled segment, with the following required attributes:
 
