@@ -411,6 +411,11 @@ func generateDoc(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "</body></html>")
 }
 
+func serveAudio(w http.ResponseWriter, r *http.Request) {
+	file := getParam("file", r)
+	http.ServeFile(w, r, path.Join(*cfg.ProjectDir, "audio", file))
+}
+
 var cfg = &Config{}
 var db *dbapi.DBAPI
 
@@ -421,6 +426,7 @@ type Config struct {
 	ServeDir   *string `json:"static_dir"`
 	ProjectDir *string `json:"project_dir"`
 	Debug      *bool   `json:"debug"`
+	Ffmpeg     *string `json:"ffmpeg"`
 }
 
 func main() {
@@ -433,15 +439,10 @@ func main() {
 	cfg.Port = flag.String("port", "7371", "Server `port`")
 	cfg.ServeDir = flag.String("serve", "static", "Serve static `folder`")
 	cfg.ProjectDir = flag.String("project", "", "Project `folder`")
+	cfg.Ffmpeg = flag.String("ffmpeg", "ffmpeg", "Ffmpeg command/path")
 
 	cfg.Debug = flag.Bool("debug", false, "Debug mode")
 	protocol := "http"
-
-	// Shorthand aliases
-	// getopt.Aliases(
-	// 	"h", "host",
-	// 	"p", "port",
-	// )
 
 	help := flag.Bool("help", false, "Print usage and exit")
 	flag.Parse()
@@ -479,11 +480,8 @@ func main() {
 	}
 
 	db = dbapi.NewDBAPI(*cfg.ProjectDir)
-	err = db.LoadData()
-	if err != nil {
-		log.Fatal("Couldn't load data: %v", err)
-	}
 
+	modules.FfmpegCmd = *cfg.Ffmpeg
 	chunkExtractor, err = modules.NewChunkExtractor()
 	if err != nil {
 		log.Fatal("Couldn't initialize chunk extractor: %v", err)
@@ -494,6 +492,7 @@ func main() {
 
 	r.HandleFunc("/doc/", generateDoc).Methods("GET")
 	r.HandleFunc("/ws/{client_id}", wsHandler)
+	r.HandleFunc("/audio/{file}", serveAudio).Methods("GET")
 
 	docs := make(map[string]string)
 	err = r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
@@ -509,8 +508,7 @@ func main() {
 	})
 	if err != nil {
 		msg := fmt.Sprintf("Failure to walk URLs : %v", err)
-		log.Error(msg)
-		return
+		log.Fatal(msg)
 	}
 
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(*cfg.ServeDir))))
@@ -526,4 +524,10 @@ func main() {
 	if err = srv.ListenAndServe(); err != nil {
 		log.Fatal("Server failure: %v", err)
 	}
+
+	err = db.LoadData()
+	if err != nil {
+		log.Fatal("Couldn't load data: %v", err)
+	}
+
 }

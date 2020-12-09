@@ -306,13 +306,23 @@ func (api *DBAPI) Lock(segmentID, user string) error {
 func (api *DBAPI) CheckedSegmentStats() (int, map[string]int) {
 	res := map[string]int{}
 	for _, anno := range api.annotationData {
+		badSample := false
+		for _, l := range anno.Labels {
+			if l == StatusBadSample {
+				badSample = true
+			}
+		}
 		status := anno.CurrentStatus
-		res["status:"+status.Name]++
+		if badSample {
+			res["status:bad sample"]++
+		} else {
+			res["status:"+status.Name]++
+		}
 		if len(status.Source) > 0 {
 			res["checked by:"+status.Source]++
 		}
-		for _, label := range anno.Labels {
-			res["label:"+label]++
+		if strings.TrimSpace(anno.Comment) != "" {
+			res["comment"]++
 		}
 	}
 	return len(api.annotationData), res
@@ -328,7 +338,7 @@ func (api *DBAPI) Stats() (map[string]int, error) {
 	res := map[string]int{
 		"total":     len(allSegs),
 		"checked":   nChecked,
-		"checkable": len(checkableSegs),
+		"unchecked": len(checkableSegs),
 		"locked":    len(api.lockMap),
 	}
 	for label, count := range checkedStats {
@@ -344,21 +354,33 @@ const (
 	StatusUnchecked = "unchecked"
 	StatusSkip      = "skip"
 	StatusOK        = "ok"
+	StatusBadSample = "bad sample"
 
 	StatusChecked = "checked"
 	StatusAny     = "any"
 	StatusEmpty   = ""
 )
 
-func statusMatch(requestStatus string, actualStatus string) bool {
+func statusMatch(requestStatus string, actualStatus string, labels []string) bool {
+	badSample := false
+	for _, l := range labels {
+		if l == StatusBadSample {
+			badSample = true
+		}
+	}
 	switch requestStatus {
 	case StatusChecked:
 		return actualStatus != StatusUnchecked && actualStatus != StatusEmpty
 	case StatusAny:
 		return true
+	case StatusBadSample:
+		return badSample
+	case StatusSkip:
+		return !badSample && actualStatus == StatusSkip
 	default:
 		return actualStatus == requestStatus
 	}
+	return false
 }
 
 func abs(i int64) int64 {
@@ -434,7 +456,7 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 			if debug {
 				log.Debug("dbapi GetNextSegment index=%v seenCurrID=%v segment.ID=%v stepSize=%v status=%v", i+1, seenCurrID, segment.ID, query.StepSize, annotation.CurrentStatus.Name)
 			}
-			if seenCurrID >= 0 && statusMatch(query.RequestStatus, annotation.CurrentStatus.Name) && !api.Locked(segment.ID) {
+			if seenCurrID >= 0 && statusMatch(query.RequestStatus, annotation.CurrentStatus.Name, annotation.Labels) && !api.Locked(segment.ID) {
 				seenCurrID++
 				if query.CurrID == "" || seenCurrID == abs(query.StepSize) {
 					if lockOnLoad {

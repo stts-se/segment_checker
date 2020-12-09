@@ -39,6 +39,23 @@ function logMessage(msg) {
     return div;
 }
 
+function lockGUI() {
+    setEnabled(false);
+    enableStart(false);
+    // document.getElementById("unlock-all").disabled = true;
+    // document.getElementById("unlock-all").classList.add("disabled");
+}
+
+function enableStart(enable) {
+    if (enable) {
+	document.getElementById("start").disabled = false;
+	document.getElementById("start").classList.remove("disabled");
+    } else {
+	document.getElementById("start").disabled = true;
+	document.getElementById("start").classList.add("disabled");
+    }
+}
+
 function setEnabled(enable) {
     enabled = enable;
     let buttons = [
@@ -70,8 +87,8 @@ function setEnabled(enable) {
                 btn.disabled = false;
             }
         }
-	document.getElementById("start").disabled = true;
-        document.getElementById("start").classList.add("disabled");
+	// document.getElementById("start").disabled = true;
+        // document.getElementById("start").classList.add("disabled");
         document.getElementById("comment").removeAttribute("readonly");
     } else {
         document.getElementById("comment").setAttribute("readonly", "readonly");
@@ -82,9 +99,10 @@ function setEnabled(enable) {
                 btn.disabled = true;
             }
         }
-	document.getElementById("start").disabled = false;
-        document.getElementById("start").classList.remove("disabled");
+	// document.getElementById("start").disabled = false;
+        // document.getElementById("start").classList.remove("disabled");
     }
+    enableStart(!enable);
 }
 
 function autoplay() {
@@ -315,7 +333,7 @@ document.getElementById("move-right2right-long").addEventListener("click", funct
 
 function displayAudioChunk(chunk) {
     clear();
-    setEnabled(false);
+    lockGUI();
     // https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript#16245768
     let byteCharacters = atob(chunk.audio);
     let byteNumbers = new Array(byteCharacters.length);
@@ -439,12 +457,6 @@ function createQuery(stepSize, requestIndex, requestStatus) {
 	query.request_status = requestStatus;
     else
 	query.request_status = document.querySelector('input[name="requeststatus"]:checked').value;
-    // if (document.getElementById("requeststatus-ok").checked)
-    //     query.request_status = ["ok"];
-    // else if (document.getElementById("requeststatus-unchecked").checked)
-    //     query.request_status = ["unchecked"];
-    // else if (document.getElementById("requeststatus-checked").checked)
-    //     query.request_status = ["ok", "skip"];
     return query;
 }
 
@@ -460,18 +472,20 @@ function createQuery(stepSize, requestIndex, requestStatus) {
 
 
 function saveUnlockAndNext(options) {
-    setEnabled(false);
+    lockGUI();
     console.log("saveUnlockAndNext called with options", options);
     let user = document.getElementById("username").innerText;
     if ((!user) || user === "") {
         let msg = "Username unset -- cannot save!";
         alert(msg);
+	setEnabled(false);
         logError(msg);
         return;
     }
     if (options.status && (!cachedSegment || !cachedSegment.id)) {
         let msg = "No cached segment -- cannot save!";
         alert(msg);
+	setEnabled(false);
         logError(msg);
         return;
     }
@@ -535,23 +549,13 @@ onload = function () {
     clear();
 
     let params = new URLSearchParams(window.location.search);
-    if (params.get('username')) {
-        gloptions.userName = params.get('username');
-        document.getElementById("username").innerText = gloptions.userName;
-    }
-    else {
-        let msg = "Username unset! Reload page with URL param ?username=NAME";
-        alert(msg);
-        logError(msg);
-        return;
-    }
     if (params.get('context')) {
         gloptions.context = params.get('context');
         document.getElementById("context").innerText = `${context} ms`;
         document.getElementById("context-view").classList.remove("hidden");
     }
-    if (params.get('requeststatus')) {
-        gloptions.requestStatus = params.get('requeststatus').toLowerCase();
+    if (params.get('request_status')) {
+        gloptions.requestStatus = params.get('request_status').toLowerCase();
         if (document.getElementById(`requeststatus-${gloptions.requestStatus}`))
             document.getElementById(`requeststatus-${gloptions.requestStatus}`).checked = true;
         else {
@@ -569,11 +573,30 @@ onload = function () {
         }
     }
 
-    let requestIndex
+    let requestIndex;
     if (params.get('request_index')) {
         requestIndex = parseInt(params.get('request_index').toLowerCase())-1;
 	requestIndex = requestIndex + "";
     }
+
+    if (params.get('username')) {
+        gloptions.userName = params.get('username');
+    }
+    else {
+	let suggest = localStorage.getItem("username");
+	if (!suggest || suggest === null)
+	    suggest = "";
+        let username = prompt("User name", suggest).toLowerCase();
+	if (!username || username === null || username.trim() === "") {
+            let msg = "Username unset!";
+            logError(msg);
+            return;
+	}
+        gloptions.userName = username;
+    }
+    document.getElementById("username").innerText = gloptions.userName;
+    localStorage.setItem("username", gloptions.userName);
+
 
     console.log("gloptions", gloptions);
 
@@ -585,6 +608,13 @@ onload = function () {
             saveUnlockAndNext({ requestIndex: requestIndex });
 	else
             saveUnlockAndNext({ stepSize: 1 });
+    }
+    ws.onclose = function () {
+        logMessage("Websocket closed");
+	clear();
+	setEnabled(false);
+	ws = undefined;
+	alert("Application server was closed from server");
     }
     ws.onmessage = function (evt) {
         let resp = JSON.parse(evt.data);
@@ -605,11 +635,16 @@ onload = function () {
         else if (resp.message_type === "no_audio_chunk") {
             let msg = JSON.parse(resp.payload);
             logMessage(msg);
+	    if (cachedSegment && cachedSegment !== null)
+		setEnabled(true);
+	    else
+		setEnabled(false);
+	    enableStart(true);
             alert(msg);
         }
         else if (resp.message_type === "audio_chunk")
             displayAudioChunk(JSON.parse(resp.payload));
-        else if (resp.info === "" && resp.message_type != "keep_alive")
+        else if (resp.info === "" && resp.message_type !== "keep_alive")
             logWarning("Unknown message from server: [" + resp.message_type + "] " + resp.payload);
     }
 

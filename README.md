@@ -58,13 +58,7 @@ You can use the demo data to review the pauses.
 
 `unzip demo_data_lattlast.zip`
 
-## 2. Serve audio
-
-Use the file server included in the repository to serve the demo audio files:
-
-`go run file_server/main.go projects/demo_lattlast/audio`
-
-## 3. Start the application server
+## 2. Start the application server
 
 This command will start the server on `localhost`:
 
@@ -72,7 +66,7 @@ This command will start the server on `localhost`:
 
 For external access, use the `host` flag to set an explicit hostname/IP.
 
-## 4. Use the application
+## 3. Use the application
 
 Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
@@ -88,19 +82,16 @@ Create a folder named after the project, for example `projects/<projectname>`.
 The source data consists of one JSON file per labelled segment, with the following required attributes:
 
 * `id`: should be unique within the project
-* `url`: audio URL[1]
+* `url`: audio URL (see section _Serve audio_ below)
 * `segment_type`: "silence" or "e" (the vowel)
 * `chunk`: start and end time (milliseconds) for the labelled segment
-
-[1] Audio needs to be served separately, use the `file_server` if needed, see example above under _Demo application_
-
 
 Example:
     
      $ cat projects/demo_lattlast/source/lattlast_ogg_0001.json
      {
        "id": "lattlast_ogg_0001",
-       "url": "http://localhost:7381/lattlast.ogg",
+       "url": "http://localhost:7371/audio/lattlast.ogg",
        "segment_type": "silence",
        "chunk": {
         "start": 3935,
@@ -111,12 +102,15 @@ Example:
 
 Source data should be placed in a folder titled `source` inside the project folder. In this example, we will use `projects/<projectname>/source`.
 
+## 3. Serve audio
 
-## 3. Start the application server
+If you want the application to serve the audio, place your audio files in `<project folder>/audio`. You can also have a separate server serving the audio if you prefer that.
+
+## 4. Start the application server
 
 `go run cmd/serv/main-go -serve cmd/serv/static -project projects/<projectname>`
 
-4. Use the application
+## 5. Use the application
 
 Visit `http://localhost:7371` using your browser (Firefox is recommended)
 
@@ -129,7 +123,7 @@ Example:
     $ cat projects/demo_lattlast/annotation/lattlast_ogg_0001.json
     {
       "id": "lattlast_ogg_0001",
-      "url": "http://localhost:7381/lattlast.ogg",
+      "url": "http://localhost:7371/audio/lattlast.ogg",
       "segment_type": "silence",
       "chunk": {
        "start": 4001,

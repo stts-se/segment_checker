@@ -36,7 +36,7 @@ func (ch Chunk2File) ProcessChunk(audioFile string, chunk protocol.Chunk, outFil
 		args = append(args, encoding)
 	}
 	args = append(args, outFile)
-	cmd := exec.Command(ffmpegCmd, args...)
+	cmd := exec.Command(FfmpegCmd, args...)
 	//log.Printf("chunk2file cmd: %v", cmd)
 	err := cmd.Run()
 	if err != nil {
