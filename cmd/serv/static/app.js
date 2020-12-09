@@ -32,9 +32,7 @@ function logError(msg) {
 
 function logMessage(msg) {
     let div = document.createElement("div");
-    div.innerText = LIB.timestampHHMMSS() + " " + msg;
-    // if (msg.toLowerCase().includes("error"))
-    // 	div.style.color = "red";
+    div.innerText = new Date().toLocaleTimeString("sv-SE") + " " + msg;
     messages.prepend(div);
     return div;
 }
