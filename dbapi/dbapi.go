@@ -487,11 +487,17 @@ func (api *DBAPI) Save(annotation protocol.AnnotationPayload) error {
 	api.dbMutex.RLock()
 	defer api.dbMutex.RUnlock()
 
+	/* SAVE TO CACHE */
 	api.annotationData[annotation.ID] = annotation
 
-	// print to file
+	/* PRINT TO FILE */
+
+	// create copy for writing, and remove internal index
+	saveAnno := annotation
+	saveAnno.Index = 0
+
 	f := path.Join(api.AnnotationDataDir, fmt.Sprintf("%s.json", annotation.ID))
-	writeJSON, err := json.MarshalIndent(annotation, " ", " ")
+	writeJSON, err := json.MarshalIndent(saveAnno, " ", " ")
 	if err != nil {
 		return fmt.Errorf("marhsal failed : %v", err)
 	}
