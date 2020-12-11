@@ -127,12 +127,19 @@ func (api *DBAPI) listJSONFiles(dir string) []string {
 }
 
 func (api *DBAPI) validateData() error {
+	if len(api.sourceData) == 0 {
+		return fmt.Errorf("found no segments in source data")
+	}
 	sourceMap := map[string]protocol.SegmentPayload{}
+	segTypes := []string{}
 	for _, seg := range api.sourceData {
 		sourceMap[seg.ID] = seg
+		if !contains(segTypes, seg.SegmentType) {
+			segTypes = append(segTypes, seg.SegmentType)
+		}
 	}
-	if len(sourceMap) == 0 {
-		return fmt.Errorf("found no segments in source data")
+	if len(segTypes) != 1 {
+		return fmt.Errorf("source data contains mixed segment types: %v", strings.Join(segTypes, ", "))
 	}
 	for id, anno := range api.annotationData {
 		seg, segExists := sourceMap[id]
@@ -517,4 +524,13 @@ func (api *DBAPI) Save(annotation protocol.AnnotationPayload) error {
 	file.Write(writeJSON)
 
 	return nil
+}
+
+func contains(slice []string, s string) bool {
+	for _, s0 := range slice {
+		if s0 == s {
+			return true
+		}
+	}
+	return false
 }
