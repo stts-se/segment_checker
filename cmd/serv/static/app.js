@@ -118,8 +118,8 @@ function autoplay() {
         document.getElementById("play-label").click();
 }
 
-async function loadAudioBlob(url, chunk) {
-    waveform.loadAudioBlob(url, [chunk]);
+async function loadAudioBlob(url, chunk, label) {
+    waveform.loadAudioBlob(url, [chunk], label);
     // waveform.wavesurfer.on("region-created", function (region) {
     //     autoplay();
     // });
@@ -226,7 +226,7 @@ function clear() {
     document.getElementById("current_status").innerText = "";
     document.getElementById("current_status_div").style.backgroundColor = "";
     document.getElementById("current_status_div").style.borderColor = "";
-    document.getElementById("segment_id").innerHTML = "&nbsp;";
+    document.getElementById("segment_info").innerHTML = "&nbsp;";
 }
 
 document.getElementById("reset").addEventListener("click", function (evt) {
@@ -346,8 +346,9 @@ function displayAudioChunk(chunk) {
     console.log("res => cache", JSON.stringify(cachedSegment));
 
     let blob = new Blob([byteArray], { 'type': chunk.file_type });
+    //chunk.chunk.segment_type = chunk.segment_type;
     loadAudioBlob(blob, chunk.chunk);
-    document.getElementById("segment_id").innerText = chunk.index + " | " + chunk.id;
+    document.getElementById("segment_info").innerText = chunk.index + " | " + chunk.id + " | segment_type: " + chunk.segment_type;
 
     // status info + color code
     let status = chunk.current_status.name;
@@ -690,8 +691,10 @@ function loadKeyboardShortcuts() {
         if (id && tooltip) {
             let ele = document.getElementById(id);
             if (ele) {
-                if (!ele.title)
-                    ele.title = "key: " + tooltip;
+                if (!ele.title) {
+		    if (shortcuts[key].funcDesc)
+			ele.title = shortcuts[key].funcDesc + " - key: " + tooltip;
+		}
             } else
                 throw Error(`No element with id ${id}`);
         }
