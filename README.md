@@ -2,7 +2,7 @@
 # SegmentChecker
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/stts-se/segment_checker)](https://goreportcard.com/report/github.com/stts-se/segment_checker) 
-[![GoDoc](https://godoc.org/github.com/stts-se/segment_checker?status.svg)](https://pkg.go.dev/github.com/stts-se/segment_checker/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/stts-se/segment_checker.svg)](https://pkg.go.dev/github.com/stts-se/segment_checker)
 
 Tool for revising segment boundaries. Developed by [STTS](https://stts.se) on behalf of [TMH](https://www.speech.kth.se).
 
