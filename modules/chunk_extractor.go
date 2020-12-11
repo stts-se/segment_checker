@@ -14,7 +14,7 @@ import (
 	"github.com/stts-se/segment_checker/protocol"
 )
 
-// ChunkExtractor is extract time chunks from an audio file, creating a subset of "phrases" from the file.
+// ChunkExtractor extracts time chunks from an audio file, creating a subset of "phrases" from the file.
 // For initialization, use NewChunkExtractor().
 type ChunkExtractor struct {
 	chunk2file Chunk2File

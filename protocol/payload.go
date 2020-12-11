@@ -1,6 +1,8 @@
 package protocol
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type SourcePayload struct {
 	URL         string  `json:"url"`

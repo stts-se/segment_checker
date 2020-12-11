@@ -107,6 +107,7 @@ func (api *DBAPI) LoadData() error {
 	if err != nil {
 		return fmt.Errorf("data validation failed : %v", err)
 	}
+	log.Info("dbapi Data validated without errors")
 
 	return nil
 }
@@ -130,6 +131,9 @@ func (api *DBAPI) validateData() error {
 	for _, seg := range api.sourceData {
 		sourceMap[seg.ID] = seg
 	}
+	if len(sourceMap) == 0 {
+		return fmt.Errorf("found no segments in source data")
+	}
 	for id, anno := range api.annotationData {
 		seg, segExists := sourceMap[id]
 		if !segExists {
@@ -137,6 +141,9 @@ func (api *DBAPI) validateData() error {
 		}
 		if anno.URL != seg.URL {
 			return fmt.Errorf("annotation data has a different URL than source data: %s vs %s", anno.URL, seg.URL)
+		}
+		if anno.ID != seg.ID {
+			return fmt.Errorf("annotation data has a different ID than source data: %s vs %s", anno.ID, seg.ID)
 		}
 		if anno.SegmentType != seg.SegmentType {
 			return fmt.Errorf("annotation data has a different segment type than source data: %s vs %s", anno.SegmentType, seg.SegmentType)
@@ -202,12 +209,12 @@ func (api *DBAPI) LoadSourceData() ([]protocol.SegmentPayload, error) {
 		if strings.HasSuffix(f, ".json") {
 			bts, err := ioutil.ReadFile(f)
 			if err != nil {
-				return res, fmt.Errorf("couldn't read file %s : %v", f, err)
+				return res, fmt.Errorf("couldn't read segment file %s : %v", f, err)
 			}
 			var segment protocol.SegmentPayload
 			err = json.Unmarshal(bts, &segment)
 			if err != nil {
-				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
+				return res, fmt.Errorf("couldn't unmarshal segment file %s: %v", f, err)
 			}
 			err = validateSegment(segment)
 			if err != nil {
@@ -230,16 +237,16 @@ func (api *DBAPI) LoadAnnotationData() (map[string]protocol.AnnotationPayload, e
 		if strings.HasSuffix(f, ".json") {
 			bts, err := ioutil.ReadFile(f)
 			if err != nil {
-				return res, fmt.Errorf("couldn't read file %s : %v", f, err)
+				return res, fmt.Errorf("couldn't read annotation file %s : %v", f, err)
 			}
 			var annotation protocol.AnnotationPayload
 			err = json.Unmarshal(bts, &annotation)
 			if err != nil {
-				return res, fmt.Errorf("couldn't unmarshal json : %v", err)
+				return res, fmt.Errorf("couldn't unmarshal annotation file %s : %v", f, err)
 			}
 			err = validateAnnotation(annotation)
 			if err != nil {
-				return res, fmt.Errorf("invalid json in source file %s : %v", f, err)
+				return res, fmt.Errorf("invalid json in annotation file %s : %v", f, err)
 			}
 			if _, seen := res[annotation.ID]; seen {
 				return res, fmt.Errorf("duplicate ids for annotation data: %s", annotation.ID)

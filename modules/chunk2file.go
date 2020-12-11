@@ -11,7 +11,7 @@ import (
 	"github.com/stts-se/segment_checker/protocol"
 )
 
-// Chunk2File is extract time chunks from an audio file, creating a subset of "phrases" from the file.
+// Chunk2File extracts time chunks from an audio file, creating a subset of files containing "phrases" from the file.
 // For initialization, use NewChunk2File().
 type Chunk2File struct {
 }
