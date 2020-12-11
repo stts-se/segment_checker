@@ -149,18 +149,6 @@ document.getElementById("play-right").addEventListener("click", function (evt) {
         waveform.playRightOfRegionIndex(0);
 });
 
-// document.getElementById("save-badsample").addEventListener("click", function (evt) {
-//     if (!evt.target.disabled)
-//         save({ status: "skip", label: "bad sample" });
-// });
-// document.getElementById("save-skip").addEventListener("click", function (evt) {
-//     if (!evt.target.disabled)
-//         save({ status: "skip" });
-// });
-// document.getElementById("save-ok").addEventListener("click", function (evt) {
-//     if (!evt.target.disabled)
-//         save({ status: "ok" });
-// });
 document.getElementById("save-badsample-next").addEventListener("click", function (evt) {
     if (!evt.target.disabled)
         saveUnlockAndNext({ status: "skip", label: "bad sample", stepSize: 1 });

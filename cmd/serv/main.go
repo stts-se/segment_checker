@@ -356,24 +356,28 @@ func saveUnlockAndNext(conn *websocket.Conn, payload AnnotationUnlockAndQueryPay
 	if query.CurrID == "undefined" {
 		query.CurrID = ""
 	}
-	segment, found, err := db.GetNextSegment(query, true)
+	segment, msg, err := db.GetNextSegment(query, payload.Unlock.SegmentID, true)
 	if err != nil {
 		msg := fmt.Sprintf("%v", err)
 		wsError(conn, msg, msg)
 		return
 	}
-	if found {
+	if msg == "" || segment.ID != "" {
 		load(conn, segment, query.Context)
 	} else {
+		msgFmted := ""
+		if msg != "" {
+			msgFmted = fmt.Sprintf(": %s", msg)
+		}
 		if query.RequestIndex != "" {
-			msg := fmt.Sprintf("Couldn't go to %s segment", query.RequestIndex)
+			msg := fmt.Sprintf("Couldn't go to %s segment%s", query.RequestIndex, msgFmted)
 			wsPayload(conn, "no_audio_chunk", msg)
 		} else {
 			direction := "next"
 			if query.StepSize < 0 {
 				direction = "previous"
 			}
-			msg := fmt.Sprintf("Couldn't find any %s segments matching status: %v", direction, query.RequestStatus)
+			msg := fmt.Sprintf("Couldn't find any %s segments matching status %v%s", direction, query.RequestStatus, msgFmted)
 			wsPayload(conn, "no_audio_chunk", msg)
 		}
 		if savedAnnotation.ID != "" {

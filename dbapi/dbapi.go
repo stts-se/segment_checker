@@ -278,8 +278,8 @@ func (api *DBAPI) Unlock(segmentID, user string) error {
 	log.Info("dbapi Unlock %s %s", segmentID, user)
 	api.lockMapMutex.Lock()
 	defer api.lockMapMutex.Unlock()
-	lockedBy, exists := api.lockMap[segmentID]
-	if !exists {
+	lockedBy, locked := api.lockMap[segmentID]
+	if !locked {
 		return fmt.Errorf("%v is not locked", segmentID)
 	}
 	if lockedBy != user {
@@ -314,8 +314,8 @@ func (api *DBAPI) Lock(segmentID, user string) error {
 	log.Info("dbapi Lock %s %s", segmentID, user)
 	api.lockMapMutex.Lock()
 	defer api.lockMapMutex.Unlock()
-	lockedBy, exists := api.lockMap[segmentID]
-	if exists {
+	lockedBy, locked := api.lockMap[segmentID]
+	if locked {
 		return fmt.Errorf("%v is already locked by user %s", segmentID, lockedBy)
 	}
 	api.lockMap[segmentID] = user
@@ -420,7 +420,8 @@ func (api *DBAPI) annotationFromSegment(segment protocol.SegmentPayload) protoco
 	}
 }
 
-func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (protocol.AnnotationPayload, bool, error) {
+// GetNextSegment returns an annotation based on the query request. If an error is found, it returns an empty annotation, and an error. If an error is not found, but there is no segment to be found, a message will be returned.
+func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, currentlyLockedID string, lockOnLoad bool) (protocol.AnnotationPayload, string, error) {
 	log.Info("dbapi GetNextSegment")
 	api.dbMutex.RLock()
 	defer api.dbMutex.RUnlock()
@@ -442,16 +443,22 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 			if err == nil && reqI >= 0 && reqI < len(api.sourceData) {
 				i = reqI
 			} else {
-				return protocol.AnnotationPayload{}, false, fmt.Errorf("invalid request index: %s", query.RequestIndex)
+				return protocol.AnnotationPayload{}, "", fmt.Errorf("invalid request index: %s", query.RequestIndex)
 			}
 		}
 		segment := api.sourceData[i]
+		if segment.ID == currentlyLockedID {
+			return protocol.AnnotationPayload{}, "user is already at the requested segment", nil
+		}
 		annotation := api.annotationFromSegment(segment)
 		if lockOnLoad {
-			api.Lock(annotation.ID, query.UserName)
+			err := api.Lock(annotation.ID, query.UserName)
+			if err != nil {
+				return protocol.AnnotationPayload{}, "segment is already locked", nil
+			}
 		}
 		annotation.Index = int64(i + 1)
-		return annotation, true, nil
+		return annotation, "", nil
 	} else if query.CurrID != "" {
 		seenCurrID = int64(-1)
 		for i, segment := range api.sourceData {
@@ -479,10 +486,17 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 				seenCurrID++
 				if query.CurrID == "" || seenCurrID == abs(query.StepSize) {
 					if lockOnLoad {
-						api.Lock(annotation.ID, query.UserName)
+						if api.Locked(annotation.ID) {
+							return protocol.AnnotationPayload{}, fmt.Sprintf("%v is already locked", segment.ID), nil
+						}
+						err := api.Lock(annotation.ID, query.UserName)
+						if err != nil {
+							return protocol.AnnotationPayload{}, "", err
+						}
+
 					}
 					annotation.Index = int64(i + 1)
-					return annotation, true, nil
+					return annotation, "", nil
 				}
 			}
 		}
@@ -492,7 +506,7 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, lockOnLoad bool) (
 			i++
 		}
 	}
-	return protocol.AnnotationPayload{}, false, nil
+	return protocol.AnnotationPayload{}, "zilch", nil
 }
 
 func (api *DBAPI) Save(annotation protocol.AnnotationPayload) error {
