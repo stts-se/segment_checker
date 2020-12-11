@@ -21,6 +21,11 @@ import (
 	"github.com/stts-se/segment_checker/protocol"
 )
 
+type ClientID struct {
+	ID       string `json:"id"`
+	UserName string `json:"user_name"`
+}
+
 // Message for sending to client
 type Message struct {
 	//ClientID    string `json:"client_id"`
@@ -90,7 +95,7 @@ func jsonError(w http.ResponseWriter, serverMsg string, clientMsg string) {
 }
 
 var clientMutex sync.RWMutex
-var clients = make(map[string]*websocket.Conn)
+var clients = make(map[ClientID]*websocket.Conn)
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -106,20 +111,32 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, msg, msg)
 		return
 	}
+	userName := vars["user_name"]
 
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to upgrade HTTP request to websocket : %v", err)
 		jsonError(w, msg, msg)
+		return
 	}
 
+	for clID := range clients {
+		if clID.UserName == userName {
+			msg := fmt.Sprintf("User %s is already logged in", userName)
+			wsError(ws, msg, msg)
+			ws.Close()
+			return
+		}
+	}
+
+	clID := ClientID{ID: clientID, UserName: userName}
 	clientMutex.Lock()
-	clients[clientID] = ws
+	clients[clID] = ws
 	clientMutex.Unlock()
-	log.Info("Added websocket for client id %s", clientID)
+	log.Info("Added websocket for client id %s", clID)
 
 	// listen forever
-	go listenToClient(ws, clientID)
+	go listenToClient(ws, clID)
 }
 
 func wsPayload(conn *websocket.Conn, msgType string, payload interface{}) {
@@ -164,7 +181,7 @@ func wsInfo(conn *websocket.Conn, msg string) {
 	}
 }
 
-func listenToClient(conn *websocket.Conn, clientID string) {
+func listenToClient(conn *websocket.Conn, clientID ClientID) {
 	//wsInfo(conn, "Websocket created on server")
 
 	for {
@@ -497,7 +514,7 @@ func main() {
 	r.StrictSlash(true)
 
 	r.HandleFunc("/doc/", generateDoc).Methods("GET")
-	r.HandleFunc("/ws/{client_id}", wsHandler)
+	r.HandleFunc("/ws/{client_id}/{user_name}", wsHandler)
 	if !*cfg.BlockAudio {
 		r.HandleFunc("/audio/{file}", serveAudio).Methods("GET")
 	}

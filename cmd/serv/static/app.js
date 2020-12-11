@@ -592,7 +592,7 @@ onload = function () {
 
     console.log("gloptions", gloptions);
 
-    let url = wsBase + "/ws/" + clientID;
+    let url = wsBase + "/ws/" + clientID + "/" + document.getElementById("username").innerText;
     ws = new WebSocket(url);
     ws.onopen = function () {
         logMessage("Websocket opened");
@@ -602,8 +602,21 @@ onload = function () {
             saveUnlockAndNext({ stepSize: 1 });
     }
     ws.onclose = function () {
-	let msg = "Application was closed from server";
+	let msg = "Connection was closed from server";
         logError(msg);
+	clear();
+	setEnabled(false);
+	enableStart(false);
+	document.getElementById("unlock-all").disabled = true;
+	document.getElementById("unlock-all").classList.add("disabled");
+
+	ws = undefined;
+	alert(msg);
+    }
+    ws.onerror = function(evt) {
+	console.log("Websocket error", evt);
+	let msg = "Websocket error";
+	logError(msg);
 	clear();
 	setEnabled(false);
 	enableStart(false);
