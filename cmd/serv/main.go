@@ -30,12 +30,17 @@ type ClientID struct {
 
 // Message for sending to client
 type Message struct {
-	//ClientID    string `json:"client_id"`
 	MessageType string `json:"message_type"`
 	Payload     string `json:"payload"`
-	Fatal       string `json:"fatal,omitempty"`
-	Error       string `json:"error,omitempty"`
-	Info        string `json:"info,omitempty"`
+
+	// Fatal is a non-recoverable error (GUI will be disabled)
+	Fatal string `json:"fatal,omitempty"`
+
+	// Error is a recoverable error (GUI will be cleared, but not disabled)
+	Error string `json:"error,omitempty"`
+
+	// Info is for informational messages, nothing is disabled or cleared
+	Info string `json:"info,omitempty"`
 }
 
 type AnnotationUnlockAndQueryPayload struct {
