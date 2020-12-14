@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	debug         = false
-	testURLAccess = true
+	debug = false
 )
 
 type DBAPI struct {
@@ -159,6 +158,14 @@ func (api *DBAPI) validateData() error {
 	return nil
 }
 
+// func buildURL(serverHost, segmentURL string) string {
+// 	if strings.HasPrefix(segmentURL, "http") {
+// 		return segmentURL
+// 	}
+// 	// relative url
+// 	return fmt.Sprintf("%s/%s", serverHost, segmentURL)
+// }
+
 func validateSegment(segment protocol.SegmentPayload) error {
 	if segment.ID == "" {
 		return fmt.Errorf("no id")
@@ -170,22 +177,17 @@ func validateSegment(segment protocol.SegmentPayload) error {
 	if segment.Chunk.Start > segment.Chunk.End {
 		return fmt.Errorf("chunk end must be after chunk start, found chunk %#v", segment.Chunk)
 	}
-
-	// URL
 	if segment.URL == "" {
 		return fmt.Errorf("no URL")
 	}
-	if testURLAccess {
-		urlResp, err := http.Get(segment.URL)
-		if err != nil {
-			return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
-		}
-		defer urlResp.Body.Close()
-		if urlResp.StatusCode != http.StatusOK {
-			return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
-		}
+	urlResp, err := http.Get(segment.URL)
+	if err != nil {
+		return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
 	}
-
+	defer urlResp.Body.Close()
+	if urlResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+	}
 	return nil
 }
 
