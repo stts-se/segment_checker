@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -298,6 +299,14 @@ var contextMap = map[string]int64{
 
 const fallbackContext = int64(1000)
 
+func buildURL(segmentURL string) string {
+	if strings.HasPrefix(segmentURL, "http") {
+		return segmentURL
+	}
+	// relative url
+	return fmt.Sprintf("%s://%s:%s/%s", *cfg.Protocol, *cfg.Host, *cfg.Port, segmentURL)
+}
+
 func load(conn *websocket.Conn, annotation protocol.AnnotationPayload, explicitContext int64) {
 	var context int64
 	if explicitContext > 0 {
@@ -309,7 +318,7 @@ func load(conn *websocket.Conn, annotation protocol.AnnotationPayload, explicitC
 	}
 
 	request := protocol.SplitRequestPayload{
-		URL:          annotation.URL,
+		URL:          buildURL(annotation.URL),
 		Chunk:        annotation.Chunk,
 		SegmentType:  annotation.SegmentType,
 		LeftContext:  context,
@@ -324,6 +333,7 @@ func load(conn *websocket.Conn, annotation protocol.AnnotationPayload, explicitC
 	chunk := res.Chunk
 	res.AnnotationPayload = annotation
 	res.Chunk = chunk
+	res.URL = annotation.URL
 
 	// debug print
 	// resJSONDbg, _ := res.PrettyMarshal()
@@ -443,6 +453,7 @@ var db *dbapi.DBAPI
 
 // Config for server
 type Config struct {
+	Protocol   *string `json:"protocol"`
 	Host       *string `json:"host"`
 	Port       *string `json:"port"`
 	ServeDir   *string `json:"static_dir"`
@@ -467,6 +478,7 @@ func main() {
 
 	cfg.Debug = flag.Bool("debug", false, "Debug mode")
 	protocol := "http"
+	cfg.Protocol = &protocol
 
 	help := flag.Bool("help", false, "Print usage and exit")
 	flag.Parse()
@@ -553,7 +565,7 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	log.Info("Starting server on %s://%s", protocol, *cfg.Host+":"+*cfg.Port)
+	log.Info("Starting server on %s://%s", *cfg.Protocol, *cfg.Host+":"+*cfg.Port)
 	log.Info("Serving folder %s", *cfg.ServeDir)
 
 	go func() {
@@ -563,6 +575,10 @@ func main() {
 		err = db.LoadData()
 		if err != nil {
 			log.Fatal("Couldn't load data: %v", err)
+		}
+		err = db.TestURLAccess(buildURL)
+		if err != nil {
+			log.Fatal("URL access test failed: %v", err)
 		}
 	}()
 

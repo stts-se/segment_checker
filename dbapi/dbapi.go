@@ -158,13 +158,19 @@ func (api *DBAPI) validateData() error {
 	return nil
 }
 
-// func buildURL(serverHost, segmentURL string) string {
-// 	if strings.HasPrefix(segmentURL, "http") {
-// 		return segmentURL
-// 	}
-// 	// relative url
-// 	return fmt.Sprintf("%s/%s", serverHost, segmentURL)
-// }
+func (api *DBAPI) TestURLAccess(buildURL func(string) string) error {
+	for _, segment := range api.sourceData {
+		urlResp, err := http.Get(buildURL(segment.URL))
+		if err != nil {
+			return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
+		}
+		defer urlResp.Body.Close()
+		if urlResp.StatusCode != http.StatusOK {
+			return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+		}
+	}
+	return nil
+}
 
 func validateSegment(segment protocol.SegmentPayload) error {
 	if segment.ID == "" {
@@ -180,14 +186,14 @@ func validateSegment(segment protocol.SegmentPayload) error {
 	if segment.URL == "" {
 		return fmt.Errorf("no URL")
 	}
-	urlResp, err := http.Get(segment.URL)
-	if err != nil {
-		return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
-	}
-	defer urlResp.Body.Close()
-	if urlResp.StatusCode != http.StatusOK {
-		return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
-	}
+	// urlResp, err := http.Get(segment.URL)
+	// if err != nil {
+	// 	return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
+	// }
+	// defer urlResp.Body.Close()
+	// if urlResp.StatusCode != http.StatusOK {
+	// 	return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+	// }
 	return nil
 }
 
