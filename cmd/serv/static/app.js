@@ -629,8 +629,22 @@ onload = function () {
     ws.onmessage = function (evt) {
         let resp = JSON.parse(evt.data);
         //console.log("ws.onmessage", resp);
+        if (resp.fatal) {
+	    ws.close();
+            logError("Non-recoverable server error: " + resp.fatal);
+	    clear();
+	    setEnabled(false);
+	    enableStart(false);
+	    document.getElementById("unlock-all").disabled = true;
+	    document.getElementById("unlock-all").classList.add("disabled");
+	    
+	    ws = undefined;
+	    alert("Non-recoverable server error: " + resp.fatal);
+            return;
+        }
         if (resp.error) {
             logError("Server error: " + resp.error);
+	    alert("Server error: " + resp.error);
             return;
         }
         if (resp.info) {

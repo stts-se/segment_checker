@@ -33,6 +33,7 @@ type Message struct {
 	//ClientID    string `json:"client_id"`
 	MessageType string `json:"message_type"`
 	Payload     string `json:"payload"`
+	Fatal       string `json:"fatal,omitempty"`
 	Error       string `json:"error,omitempty"`
 	Info        string `json:"info,omitempty"`
 }
@@ -65,6 +66,25 @@ func wsError(conn *websocket.Conn, serverMsg string, clientMsg string) {
 	log.Error(serverMsg)
 	payload := Message{
 		Error: clientMsg,
+	}
+	resJSON, err := json.Marshal(payload)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to marshal result : %v", err)
+		log.Error(msg)
+		return
+	}
+	err = conn.WriteMessage(websocket.TextMessage, resJSON)
+	if err != nil {
+		log.Error("Couldn't write to conn: %v", err)
+	}
+	return
+}
+
+// print serverMsg to server log, send client message as non-recoverable error message over websocket
+func wsFatal(conn *websocket.Conn, serverMsg string, clientMsg string) {
+	log.Error(serverMsg)
+	payload := Message{
+		Fatal: clientMsg,
 	}
 	resJSON, err := json.Marshal(payload)
 	if err != nil {
@@ -125,8 +145,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	for clID := range clients {
 		if clID.UserName == userName {
 			msg := fmt.Sprintf("User %s is already logged in", userName)
-			wsError(ws, msg, msg)
-			ws.Close()
+			wsFatal(ws, msg, msg)
+			//ws.Close() // the client will close the websocket if needed (to avoid double error messages from server)
 			return
 		}
 	}
