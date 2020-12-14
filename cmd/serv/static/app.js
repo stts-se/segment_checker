@@ -636,7 +636,9 @@ onload = function () {
         if (resp.info) {
             logMessage(resp.info);
         }
-        if (resp.message_type === "stats")
+        if (resp.message_type === "project_name")
+            document.getElementById("project_name").innerHTML = ": " + JSON.parse(resp.payload);
+        else if (resp.message_type === "stats")
             displayStats(JSON.parse(resp.payload));
         else if (resp.message_type === "explicit_unlock_completed") {
             cachedSegment = null;
@@ -760,3 +762,9 @@ window.addEventListener("keydown", function (evt) {
         }
     }
 });
+
+window.onbeforeunload = function () {
+    if (cachedSegment && cachedSegment != null) {
+        return "Are you sure you want to navigate away?";
+    }
+}

@@ -48,6 +48,10 @@ func NewDBAPI(projectDir string) *DBAPI {
 	return &res
 }
 
+func (api *DBAPI) ProjectName() string {
+	return path.Base(api.ProjectDir)
+}
+
 func (api *DBAPI) LoadData() error {
 	var err error
 

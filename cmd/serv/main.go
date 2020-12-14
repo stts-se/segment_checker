@@ -185,6 +185,9 @@ func wsInfo(conn *websocket.Conn, msg string) {
 func listenToClient(conn *websocket.Conn, clientID ClientID) {
 	//wsInfo(conn, "Websocket created on server")
 
+	res := db.ProjectName()
+	wsPayload(conn, "project_name", res)
+
 	for {
 		var msg Message
 		err := conn.ReadJSON(&msg)
@@ -205,7 +208,7 @@ func listenToClient(conn *websocket.Conn, clientID ClientID) {
 		case "stats":
 			res, err := db.Stats()
 			if err != nil {
-				msg := fmt.Sprintf("Failed to unmarshal payload : %v", err)
+				msg := fmt.Sprintf("Failed to create stats : %v", err)
 				wsError(conn, msg, msg)
 				return
 			}
