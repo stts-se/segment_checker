@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -400,8 +401,14 @@ func saveUnlockAndNext(conn *websocket.Conn, payload AnnotationUnlockAndQueryPay
 			msgFmted = fmt.Sprintf(": %s", msg)
 		}
 		if query.RequestIndex != "" {
-			msg := fmt.Sprintf("Couldn't go to %s segment%s", query.RequestIndex, msgFmted)
-			wsPayload(conn, "no_audio_chunk", msg)
+			reqI, err := strconv.Atoi(query.RequestIndex)
+			if err == nil {
+				msg := fmt.Sprintf("Couldn't go to segment %d%s", (reqI + 1), msgFmted)
+				wsPayload(conn, "no_audio_chunk", msg)
+			} else {
+				msg := fmt.Sprintf("Couldn't go to %s segment%s", query.RequestIndex, msgFmted)
+				wsPayload(conn, "no_audio_chunk", msg)
+			}
 		} else {
 			direction := "next"
 			if query.StepSize < 0 {
