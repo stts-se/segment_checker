@@ -506,7 +506,7 @@ func (api *DBAPI) GetNextSegment(query protocol.QueryPayload, currentlyLockedID 
 			i++
 		}
 	}
-	return protocol.AnnotationPayload{}, "zilch", nil
+	return protocol.AnnotationPayload{}, fmt.Sprintf("no segment matching requested status %s", query.RequestStatus), nil
 }
 
 func (api *DBAPI) Save(annotation protocol.AnnotationPayload) error {
