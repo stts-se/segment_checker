@@ -19,7 +19,7 @@ import (
 
 	"github.com/stts-se/segment_checker/dbapi"
 	"github.com/stts-se/segment_checker/log"
-	"github.com/stts-se/segment_checker/modules"
+	"github.com/stts-se/segment_checker/modules/ffmpeg"
 	"github.com/stts-se/segment_checker/protocol"
 )
 
@@ -58,7 +58,7 @@ func getParam(paramName string, r *http.Request) string {
 	return vars[paramName]
 }
 
-var chunkExtractor modules.ChunkExtractor
+var chunkExtractor ffmpeg.ChunkExtractor
 
 // print serverMsg to server log, and return an http error with clientMsg and the specified error code (http.StatusInternalServerError, etc)
 func httpError(w http.ResponseWriter, serverMsg string, clientMsg string, errCode int) {
@@ -552,8 +552,8 @@ func main() {
 
 	db = dbapi.NewDBAPI(*cfg.ProjectDir)
 
-	modules.FfmpegCmd = *cfg.Ffmpeg
-	chunkExtractor, err = modules.NewChunkExtractor()
+	ffmpeg.FfmpegCmd = *cfg.Ffmpeg
+	chunkExtractor, err = ffmpeg.NewChunkExtractor()
 	if err != nil {
 		log.Fatal("Couldn't initialize chunk extractor: %v", err)
 	}

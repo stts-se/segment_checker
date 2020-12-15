@@ -1,4 +1,4 @@
-package modules
+package ffmpeg
 
 import (
 	"os"
@@ -14,7 +14,7 @@ func TestChunk2File1MP3(t *testing.T) {
 		t.Errorf("got error from NewChunk2File: %v", err)
 		return
 	}
-	fName := path.Join("test_data", "three_sentences.mp3")
+	fName := path.Join("../test_data", "three_sentences.mp3")
 	chunks := []protocol.Chunk{
 		{Start: 0, End: 1587},
 		{Start: 1587, End: 3885},
@@ -33,9 +33,9 @@ func TestChunk2File1MP3(t *testing.T) {
 		return
 	}
 	exp := []string{
-		path.Join("test_data", tmpBase, "three_sentences_chunk0001.mp3"),
-		path.Join("test_data", tmpBase, "three_sentences_chunk0002.mp3"),
-		path.Join("test_data", tmpBase, "three_sentences_chunk0003.mp3"),
+		path.Join("../test_data", tmpBase, "three_sentences_chunk0001.mp3"),
+		path.Join("../test_data", tmpBase, "three_sentences_chunk0002.mp3"),
+		path.Join("../test_data", tmpBase, "three_sentences_chunk0003.mp3"),
 	}
 	if len(got) != len(exp) {
 		t.Errorf("expected %v, got %v", exp, got)
@@ -56,7 +56,7 @@ func TestChunk2File1Wav(t *testing.T) {
 		t.Errorf("got error from NewChunk2File: %v", err)
 		return
 	}
-	fName := path.Join("test_data", "three_sentences.wav")
+	fName := path.Join("../test_data", "three_sentences.wav")
 	chunks := []protocol.Chunk{
 		{Start: 0, End: 1600},
 		{Start: 1600, End: 3922},
@@ -75,9 +75,9 @@ func TestChunk2File1Wav(t *testing.T) {
 		return
 	}
 	exp := []string{
-		path.Join("test_data", tmpBase, "three_sentences_chunk0001.wav"),
-		path.Join("test_data", tmpBase, "three_sentences_chunk0002.wav"),
-		path.Join("test_data", tmpBase, "three_sentences_chunk0003.wav"),
+		path.Join("../test_data", tmpBase, "three_sentences_chunk0001.wav"),
+		path.Join("../test_data", tmpBase, "three_sentences_chunk0002.wav"),
+		path.Join("../test_data", tmpBase, "three_sentences_chunk0003.wav"),
 	}
 	if len(got) != len(exp) {
 		t.Errorf("expected %v, got %v", exp, got)

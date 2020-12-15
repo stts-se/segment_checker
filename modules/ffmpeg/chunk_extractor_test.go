@@ -1,4 +1,4 @@
-package modules
+package ffmpeg
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ func TestChunkExtractorFileMP3(t *testing.T) {
 		t.Errorf("got error from NewChunkExtractor: %v", err)
 		return
 	}
-	fName := path.Join("test_data", "three_sentences.mp3")
+	fName := path.Join("../test_data", "three_sentences.mp3")
 	chunks := []protocol.Chunk{
 		{Start: 0, End: 1587},
 		{Start: 1587, End: 3885},
@@ -49,7 +49,7 @@ func TestChunkExtractorFileWAV(t *testing.T) {
 		t.Errorf("got error from NewChunkExtractor: %v", err)
 		return
 	}
-	fName := path.Join("test_data", "three_sentences.wav")
+	fName := path.Join("../test_data", "three_sentences.wav")
 	chunks := []protocol.Chunk{
 		{Start: 0, End: 1587},
 		{Start: 1587, End: 3885},
@@ -87,7 +87,7 @@ func TestChunkExtractorURLWAV(t *testing.T) {
 	if err != nil {
 		t.Errorf("got error from Getwd: %v", err)
 	}
-	url := fmt.Sprintf("file://%s/test_data/three_sentences.wav", wd)
+	url := fmt.Sprintf("file://%s/../test_data/three_sentences.wav", wd)
 	chunks := []protocol.Chunk{
 		{Start: 0, End: 1587},
 		{Start: 1587, End: 3885},
@@ -121,7 +121,7 @@ func TestChunkExtractorFileWithContext(t *testing.T) {
 		t.Errorf("got error from NewChunkExtractor: %v", err)
 		return
 	}
-	file := "test_data/three_sentences.wav"
+	file := "../test_data/three_sentences.wav"
 	leftContext := int64(100)
 	rightContext := int64(100)
 	var chunk protocol.Chunk

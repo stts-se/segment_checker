@@ -1,4 +1,4 @@
-package modules
+package ffmpeg
 
 import (
 	"fmt"
