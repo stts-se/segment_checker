@@ -48,7 +48,7 @@ unzip demo_project_lattlast.zip
 
 This command will start the server on localhost:
 
-./serv -project projects/demo_lattlast
+./app_server -project projects/demo_lattlast
 
 For external access, use the 'host' flag to set an explicit hostname/IP.
 
@@ -95,7 +95,7 @@ If you want the application to serve the audio, place your audio files in <proje
 
 4. Start the application server
 
-./serv -project <project folder>
+./app_server -project <project folder>
 
 For external access, use the 'host' flag to set an explicit hostname/IP.
 

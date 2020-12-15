@@ -68,7 +68,7 @@ You can use the demo data to review the pauses.
 
 This command will start the server on `localhost`:
 
-`go run cmd/serv/main-go -serve cmd/serv/static -project projects/demo_lattlast`
+`go run cmd/app_server/main-go -serve cmd/app_server/static -project projects/demo_lattlast`
 
 For external access, use the `host` flag to set an explicit hostname/IP.
 
@@ -114,7 +114,7 @@ If you want the application to serve the audio, place your audio files in `<proj
 
 ## 4. Start the application server
 
-`go run cmd/serv/main-go -serve cmd/serv/static -project <project folder>`
+`go run cmd/app_server/main-go -serve cmd/app_server/static -project <project folder>`
 
 For external access, use the `host` flag to set an explicit hostname/IP.
 

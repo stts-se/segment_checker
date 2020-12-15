@@ -13,7 +13,7 @@ zip: clean segche_lin segche_win
 
 	cd dist && \
 	mv ../segche ../segche.exe . && \
-	cp -r ../cmd/serv/static/ . && \
+	cp -r ../cmd/app_server/static/ . && \
 	zip -q -r segche.zip segche segche.exe static/ data/ && \
 	rm -rf static && \
 	rm -f segche segche.exe
