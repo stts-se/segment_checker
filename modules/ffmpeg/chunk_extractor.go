@@ -22,6 +22,9 @@ type ChunkExtractor struct {
 
 // NewChunkExtractor creates a new ChunkExtractor after first checking that the ffmpeg command exists
 func NewChunkExtractor() (ChunkExtractor, error) {
+	if err := ffmpegEnabled(); err != nil {
+		return ChunkExtractor{}, err
+	}
 	c2f, err := NewChunk2File()
 	if err != nil {
 		return ChunkExtractor{}, err
@@ -45,11 +48,6 @@ func (ch ChunkExtractor) ProcessFileWithContext(audioFile string, chunk protocol
 	if encoding == "" {
 		encoding = ext
 	}
-	// if encoding != "" {
-	// 	ext = encoding
-	// } else {
-	// 	encoding = ext
-	// }
 
 	btss, err := ch.ProcessFile(audioFile, []protocol.Chunk{processChunk}, encoding)
 	if err != nil {

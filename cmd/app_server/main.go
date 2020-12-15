@@ -19,6 +19,7 @@ import (
 
 	"github.com/stts-se/segment_checker/dbapi"
 	"github.com/stts-se/segment_checker/log"
+	"github.com/stts-se/segment_checker/modules"
 	"github.com/stts-se/segment_checker/modules/ffmpeg"
 	"github.com/stts-se/segment_checker/protocol"
 )
@@ -58,7 +59,7 @@ func getParam(paramName string, r *http.Request) string {
 	return vars[paramName]
 }
 
-var chunkExtractor ffmpeg.ChunkExtractor
+var chunkExtractor modules.ChunkExtractor
 
 // print serverMsg to server log, and return an http error with clientMsg and the specified error code (http.StatusInternalServerError, etc)
 func httpError(w http.ResponseWriter, serverMsg string, clientMsg string, errCode int) {
@@ -496,6 +497,8 @@ type Config struct {
 	ProjectDir *string `json:"project_dir"`
 	Debug      *bool   `json:"debug"`
 	Ffmpeg     *string `json:"ffmpeg"`
+	Sox        *string `json:"sox"`
+	ChunkLib   *string `json:"chunk_lib"`
 }
 
 func main() {
@@ -510,6 +513,8 @@ func main() {
 	cfg.BlockAudio = flag.Bool("block_audio", false, "Block audio folder from being served")
 	cfg.ProjectDir = flag.String("project", "", "Project `folder`")
 	cfg.Ffmpeg = flag.String("ffmpeg", "ffmpeg", "Ffmpeg command/path")
+	cfg.Sox = flag.String("sox", "sox", "Sox command/path")
+	cfg.ChunkLib = flag.String("chunk_lib", "sox", "Library for chunking (sox or ffmpeg)")
 
 	cfg.Debug = flag.Bool("debug", false, "Debug mode")
 	protocol := "http"
@@ -553,9 +558,20 @@ func main() {
 	db = dbapi.NewDBAPI(*cfg.ProjectDir)
 
 	ffmpeg.FfmpegCmd = *cfg.Ffmpeg
-	chunkExtractor, err = ffmpeg.NewChunkExtractor()
-	if err != nil {
-		log.Fatal("Couldn't initialize chunk extractor: %v", err)
+	if *cfg.ChunkLib == "sox" {
+		chunkExtractor, err = modules.NewSoxChunkExtractor()
+		if err != nil {
+			log.Fatal("Couldn't initialize %s chunk extractor: %v", *cfg.ChunkLib, err)
+		}
+	} else if *cfg.ChunkLib == "ffmpeg" {
+		chunkExtractor, err = modules.NewFfmpegChunkExtractor()
+		if err != nil {
+			log.Fatal("Couldn't initialize %s chunk extractor: %v", *cfg.ChunkLib, err)
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "Invalid chunk lib: %s\n", *cfg.ChunkLib)
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	r := mux.NewRouter()
