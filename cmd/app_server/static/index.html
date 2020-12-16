@@ -102,29 +102,28 @@
 		<details open><summary>options</summary>
 		    <div class="hidden" id="context-view">context: <span class="nosmallcaps" id="context"></span> </div>
 
-		    <div class="hidden">autoplay: <span class="nosmallcaps" id="autoplay" style="vertical-align: middle">
-			<input type="radio" id="autoplay-left" name="autoplay"><label for="autoplay-left">Left</label>
-			<input type="radio" id="autoplay-label" name="autoplay"><label for="autoplay-label">Label</label>
-			<input type="radio" id="autoplay-right" name="autoplay"><label for="autoplay-right">Right</label> 
-			<input type="radio" id="autoplay-all" name="autoplay"><label for="autoplay-all">All</label> 
-			<input checked type="radio" id="autoplay-none" name="autoplay"><label for="autoplay-none">None</label> 
-		    </span> </div>
-		    
-		    <div>request status: <span class="nosmallcaps" id="requeststatus" style="vertical-align: middle">
-			<input checked type="radio" id="requeststatus-unchecked" name="requeststatus" value="unchecked"><label
-															    for="requeststatus-unchecked">Unchecked</label>
-			<input type="radio" id="requeststatus-checked" name="requeststatus" value="checked"><label
-														for="requeststatus-checked">Checked</label>
-			<input type="radio" id="requeststatus-ok" name="requeststatus" value="ok"><label
-												      for="requeststatus-ok">Ok</label>
-			<input type="radio" id="requeststatus-skip" name="requeststatus" value="skip"><label
-													  for="requeststatus-skip">Skip</label>
-			<input type="radio" id="requeststatus-bs" name="requeststatus" value="bad sample"><label
-													  for="requeststatus-bs">BS</label>
-			<input type="radio" id="requeststatus-any" name="requeststatus" value="any"><label
-													for="requeststatus-any">Any</label>
-		    </span>
+		    <div class="hidden">autoplay
+			<select name="autoplay" id="autoplay">
+			    <option value="left">Left</option>
+			    <option value="label">Label</option>
+			    <option value="right">Right</option>
+			    <option value="all">All</option>
+			    <option selected value="none">None</option>
+			</select>
 		    </div>
+		    
+		    <div>
+			request status
+			<select name="requeststatus" id="requeststatus">
+			    <option selected value="unchecked">Unchecked</option>
+			    <option value="checked">Checked</option>
+			    <option value="ok">Ok</option>
+			    <option value="skip">Skip</option>
+			    <option value="bad sample">BS</option>
+			    <option value="any">Any</option>
+			</select>
+		    </div>
+
 		</details>
 
 

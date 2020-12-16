@@ -105,21 +105,25 @@ function setEnabled(enable) {
 }
 
 function autoplay() {
-    console.log("autoplay called");
-    if (document.getElementById("autoplay-none").checked)
+    let autoplayMode = document.getElementById("autoplay").value;
+    console.log("autoplay called, set to", autoplayMode);
+    if (autoplayMode === "none")
         return;
-    if (document.getElementById("autoplay-right").checked)
+    if (autoplayMode === "right")
         document.getElementById("play-right").click();
-    else if (document.getElementById("autoplay-left").checked)
+    else if (autoplayMode === "left")
         document.getElementById("play-left").click();
-    else if (document.getElementById("autoplay-all").checked)
+    else if (autoplayMode === "all")
         document.getElementById("play-all").click();
-    else if (document.getElementById("autoplay-label").checked)
+    else if (autoplayMode === "label")
         document.getElementById("play-label").click();
+    else
+	logError("unknown autoplay mode: " + autoplayMode);
 }
 
 async function loadAudioBlob(url, chunk, label) {
     waveform.loadAudioBlob(url, [chunk], label);
+    // autoplay();
     // waveform.wavesurfer.on("region-created", function (region) {
     //     autoplay();
     // });
@@ -127,26 +131,35 @@ async function loadAudioBlob(url, chunk, label) {
 
 function loadAudioURL(url, chunk) {
     waveform.loadAudioURL(url, [chunk]);
+    // autoplay();
     // waveform.wavesurfer.on("region-created", function (region) {
     //     autoplay();
     // });
 }
 
 document.getElementById("play-all").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
+	console.log(evt.target.id, "clicked");
         waveform.play(0.0);
+    }
 });
 document.getElementById("play-label").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
+	console.log(evt.target.id, "clicked");
         waveform.playRegionIndex(0);
+    }
 });
 document.getElementById("play-left").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
+	console.log(evt.target.id, "clicked");
         waveform.playLeftOfRegionIndex(0);
+    }
 });
 document.getElementById("play-right").addEventListener("click", function (evt) {
-    if (!evt.target.disabled)
+    if (!evt.target.disabled) {
+	console.log(evt.target.id, "clicked");
         waveform.playRightOfRegionIndex(0);
+    }
 });
 
 document.getElementById("save-badsample-next").addEventListener("click", function (evt) {
@@ -443,8 +456,9 @@ function createQuery(stepSize, requestIndex, requestStatus) {
     // search for status
     if (requestStatus)
 	query.request_status = requestStatus;
-    else
-	query.request_status = document.querySelector('input[name="requeststatus"]:checked').value;
+    else {
+	query.request_status = document.getElementById("requeststatus").value;
+    }
     return query;
 }
 
@@ -542,26 +556,40 @@ onload = function () {
     let params = new URLSearchParams(window.location.search);
     if (params.get('context')) {
         gloptions.context = params.get('context');
-        document.getElementById("context").innerText = `${context} ms`;
+        document.getElementById("context").innerText = `${gloptions.context} ms`;
         document.getElementById("context-view").classList.remove("hidden");
     }
     if (params.get('request_status')) {
         gloptions.requestStatus = params.get('request_status').toLowerCase();
-        if (document.getElementById(`requeststatus-${gloptions.requestStatus}`))
-            document.getElementById(`requeststatus-${gloptions.requestStatus}`).checked = true;
-        else {
+	let options = document.getElementById("requeststatus").options;
+	let seenRequestedStatus = false;
+	for (let i=0; i<options.length; i++) {
+	    if (options[i].value === gloptions.requestStatus) {
+		document.getElementById("requeststatus").value = gloptions.requestStatus;
+		seenRequestedStatus = true;
+	    }
+	}
+	if (!seenRequestedStatus) {
             logError(`Invalid search mode: ${gloptions.requestStatus}`);
-            gloptions.requestStatus = "Unchecked";
-        }
+	    document.getElementById("requeststatus").value = 'unchecked';
+	    gloptions.requestStatus = document.getElementById("requeststatus").value;
+	}
     }
     if (params.get('autoplay')) {
         gloptions.autoplay = params.get('autoplay').toLowerCase();
-        if (document.getElementById(`autoplay-${gloptions.autoplay}`))
-            document.getElementById(`autoplay-${gloptions.autoplay}`).checked = true;
-        else {
-            logError(`Invalid search mode: ${gloptions.autoplay}`);
-            gloptions.autoplay = "None";
-        }
+	let options = document.getElementById("autoplay").options;
+	let seenAutoplay = false;
+	for (let i=0; i<options.length; i++) {
+	    if (options[i].value === gloptions.autoplay) {
+		document.getElementById("autoplay").value = gloptions.autoplay;
+		seenAutoplay = true;
+	    }
+	}
+	if (!seenAutoplay) {
+            logError(`Invalid autoplay mode: ${gloptions.autoplay}`);
+	    document.getElementById("autoplay").value = 'none';
+            gloptions.autoplay = document.getElementById("autoplay").value;
+	}
     }
 
     let requestIndex;
