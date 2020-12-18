@@ -7,10 +7,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/stts-se/segment_checker/log"
 	"github.com/stts-se/segment_checker/protocol"
 )
 
@@ -42,15 +45,10 @@ func (ch ChunkExtractor) ProcessFileWithContext(audioFile string, chunk protocol
 
 	ext := filepath.Ext(audioFile)
 	ext = strings.TrimPrefix(ext, ".")
+	ext = trimURLParamsRE.ReplaceAllString(ext, "")
 	if encoding == "" {
 		encoding = ext
 	}
-	// if encoding != "" {
-	// 	ext = encoding
-	// } else {
-	// 	encoding = ext
-	// }
-
 	btss, err := ch.ProcessFile(audioFile, []protocol.Chunk{processChunk}, encoding)
 	if err != nil {
 		return protocol.AudioChunk{}, err
@@ -86,6 +84,8 @@ func (ch ChunkExtractor) ProcessURL(audioURL string, chunks []protocol.Chunk, en
 	return ch.ProcessFile(audioURL, chunks, encoding)
 }
 
+var trimURLParamsRE = regexp.MustCompile(`\?[^?.]*$`)
+
 // ProcessFile an audioFile, extracting the specified chunks to slices of byte
 func (ch ChunkExtractor) ProcessFile(audioFile string, chunks []protocol.Chunk, encoding string) ([][]byte, error) {
 	res := [][]byte{}
@@ -93,6 +93,7 @@ func (ch ChunkExtractor) ProcessFile(audioFile string, chunks []protocol.Chunk, 
 
 		ext := filepath.Ext(audioFile)
 		ext = strings.TrimPrefix(ext, ".")
+		ext = trimURLParamsRE.ReplaceAllString(ext, "")
 		if encoding != "" {
 			ext = encoding
 		} else {
@@ -103,12 +104,15 @@ func (ch ChunkExtractor) ProcessFile(audioFile string, chunks []protocol.Chunk, 
 			return res, fmt.Errorf("couldn't create uuid : %v", err)
 		}
 		tmpFile := path.Join(os.TempDir(), fmt.Sprintf("chunk-extractor-%s.%s", id, ext))
-		//log.Println("chunk_extractor tmpFile", tmpFile)
+		//log.Info("chunk_extractor tmpFile", tmpFile)
 		defer os.Remove(tmpFile)
+		c2fStart := time.Now()
 		err = ch.chunk2file.ProcessChunk(audioFile, chunk, tmpFile, encoding)
 		if err != nil {
 			return res, fmt.Errorf("chunk2file.ProcessChunk failed : %v", err)
 		}
+		c2fDur := time.Since(c2fStart)
+		log.Info("chunk2file dur %v", c2fDur)
 		bytes, err := ioutil.ReadFile(tmpFile)
 		if err != nil {
 			return res, fmt.Errorf("failed to read file : %v", err)
