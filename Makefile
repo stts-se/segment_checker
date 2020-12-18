@@ -2,10 +2,10 @@
 all: zip
 
 segche_lin:
-	GOOS=linux GOARCH=amd64 go build -o segche cmd/serv/main.go
+	GOOS=linux GOARCH=amd64 go build -o segche cmd/app_server/main.go
 
 segche_win:
-	GOOS=windows GOARCH=amd64 go build -o segche.exe cmd/serv/main.go
+	GOOS=windows GOARCH=amd64 go build -o segche.exe cmd/app_server/main.go
 
 
 zip: clean segche_lin segche_win
