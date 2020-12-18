@@ -162,15 +162,22 @@ func (api *DBAPI) validateData() error {
 	return nil
 }
 
+func testURLAccess(buildURL func(string) string, segment protocol.SegmentPayload) error {
+	urlResp, err := http.Get(buildURL(segment.URL))
+	defer urlResp.Body.Close()
+	if err != nil {
+		return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
+	}
+	if urlResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+	}
+	return nil
+}
+
 func (api *DBAPI) TestURLAccess(buildURL func(string) string) error {
 	for _, segment := range api.sourceData {
-		urlResp, err := http.Get(buildURL(segment.URL))
-		if err != nil {
-			return fmt.Errorf("audio URL %s not reachable : %v", segment.URL, err)
-		}
-		defer urlResp.Body.Close()
-		if urlResp.StatusCode != http.StatusOK {
-			return fmt.Errorf("audio URL %s not reachable (status %s)", segment.URL, urlResp.Status)
+		if err := testURLAccess(buildURL, segment); err != nil {
+			return err
 		}
 	}
 	return nil
