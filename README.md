@@ -68,7 +68,7 @@ You can use the demo data to review the pauses.
 
 This command will start the server on `localhost`:
 
-`go run cmd/app_server/main-go -serve cmd/app_server/static -project projects/demo_lattlast`
+`go run cmd/app_server/main.go -serve cmd/app_server/static -project projects/demo_lattlast`
 
 For external access, use the `host` flag to set an explicit hostname/IP.
 
